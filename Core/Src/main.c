@@ -48,7 +48,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint16_t count_pulse =0;  // глобальная переменная чтоб видеть отладку
 
 /* USER CODE END PV */
 
@@ -201,7 +201,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         if(htim == &htim3)
         {
         	    HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
-         volatile  uint16_t count_main = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4
+               //uint16_t
+        	    count_pulse = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4
                 // uint32_t freq = TIM4->CNT; // это вариант на регистрах
 
 ///////////////////////// вывод инфы ///////////////////////////////
