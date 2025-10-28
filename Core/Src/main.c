@@ -18,8 +18,6 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "dma.h"
-#include "tim.h"
 #include "gpio.h"
 #include "fsmc.h"
 
@@ -50,9 +48,6 @@
 
 /* USER CODE BEGIN PV */
 
-uint32_t falling = 0;
-float falling_new = .0f;
-uint8_t count_overflow = 0;  // счетчик переполнения
 
 /* USER CODE END PV */
 
@@ -68,11 +63,6 @@ void printedtxt(void);
 	 char strA[40]={0,};
 	 char strB[40]={0,};
 	 char strC[40]={0,};
-
-	 uint32_t ic_ccr = 0;
-
-	 uint16_t i = 0;
-
 
 /* USER CODE END 0 */
 
@@ -105,13 +95,8 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
   MX_FSMC_Init();
-  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-	
-//            memset (strX, 0, sizeof (strX));  // заполнение нулями - функция string.h
-//            memset (strY, 0, sizeof (strY));
 
 				lcdBacklightOn();
 				lcdInit();
@@ -126,12 +111,6 @@ int main(void)
 	
 	            lcdFillRect(300, 0, 320, 20, COLOR_RED);
 
-	            //    HAL_TIM_Base_Start_IT(&htim1);
-	            //    HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_1);
-	            //    HAL_TIM_IC_Start_IT(&htim1, TIM_CHANNEL_2);
-	         	  HAL_TIM_IC_Start_DMA(&htim1, TIM_CHANNEL_2, (uint32_t *)&ic_ccr, 1);
-
-
 
   /* USER CODE END 2 */
 
@@ -139,26 +118,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
-	  i++;
-	  sprintf(strA, "Period %5lu mks\n", ic_ccr);
-	  sprintf(strB, "Frequency %6lu HZ\n", 1000000/ic_ccr);
-	  sprintf(strC,"Counter = %5u", i);
-	     printedtxt();
-	     HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
-
-//	  HAL_TIM_IC_Stop_DMA(&htim1, TIM_CHANNEL_2);
-	  HAL_Delay(2000);
-
-//	  memset (strX, 0, sizeof (strX));
-//	  memset (strY, 0, sizeof (strY));
-
-//	  HAL_GPIO_WritePin(Out_PA6_GPIO_Port, Out_PA6_Pin, GPIO_PIN_SET);
-//	  HAL_Delay(10); // длина импульса
-//	  HAL_GPIO_WritePin(Out_PA6_GPIO_Port, Out_PA6_Pin, GPIO_PIN_RESET);
-//	  HAL_Delay(10);
-
-//	  printedtxt();  // Вывод на LCD данных
 
     /* USER CODE END WHILE */
 
@@ -215,16 +174,6 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-//void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) // колбек по захвату
-//{
-//        if(htim->Instance == TIM1)
-//        {
-//                sprintf(strA, "Period %5lu mks\n", ic_ccr);
-//                sprintf(strB, "Frequency %6lu HZ\n", 1000000/ic_ccr);
-//                sprintf(strC,"Counter = %5u", i);
-//                printedtxt();
-//        }
-//}
 
 void printedtxt(void)  // Вывод на LCD данных
 {
