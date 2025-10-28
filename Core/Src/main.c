@@ -115,6 +115,8 @@ int main(void)
 	            lcdFillRect(300, 0, 320, 20, COLOR_RED);
 
 
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
