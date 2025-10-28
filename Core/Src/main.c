@@ -114,8 +114,8 @@ int main(void)
 	
 	            lcdFillRect(300, 0, 320, 20, COLOR_RED);
 
-
-
+	        HAL_TIM_Base_Start_IT(&htim3);
+	        HAL_TIM_Base_Start(&htim4);
 
   /* USER CODE END 2 */
 
@@ -194,6 +194,29 @@ void printedtxt(void)  // Вывод на LCD данных
 
 //		 memset (strX, 0, sizeof (strX));
 //		 memset (strY, 0, sizeof (strY));
+}
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+        if(htim == &htim3)
+        {
+        	    HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
+         volatile  uint16_t count_main = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4
+                // uint32_t freq = TIM4->CNT; // это вариант на регистрах
+
+///////////////////////// вывод инфы ///////////////////////////////
+//          char str[96] = {0,};
+
+//          snprintf(str, 96, "FREQUENCY: %.3f MHz | %.3f KHz | %lu Hz\n--------------------\n", (float)freq / 1000000.0, (float)freq / 1000.0, freq);
+//          HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), 1000);
+
+                HAL_TIM_Base_Stop_IT(&htim3);
+
+//////////////// обнуляем счётчики и рестартуем таймер №3 /////////////////
+                __HAL_TIM_SET_COUNTER(&htim3, 0x0000);
+                __HAL_TIM_SET_COUNTER(&htim4, 0x0000);
+                HAL_TIM_Base_Start_IT(&htim3);
+        }
 }
 
 /* USER CODE END 4 */
