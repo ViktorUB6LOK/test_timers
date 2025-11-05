@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "tim.h"
+#include "usart.h"
 #include "gpio.h"
 #include "fsmc.h"
 
@@ -27,6 +28,7 @@
 #include "ili9341.h"
 #include <stdio.h>
 #include <string.h>
+#include "../../DWIN/dwin.h"
 
 /* USER CODE END Includes */
 
@@ -49,6 +51,7 @@
 
 /* USER CODE BEGIN PV */
 uint16_t count_pulse =0;  // глобальная переменная чтоб видеть отладку
+// TODO Тест
 
 /* USER CODE END PV */
 
@@ -64,6 +67,7 @@ void printedtxt(void);
 	 char strA[40]={0,};
 	 char strB[40]={0,};
 	 char strC[40]={0,};
+uint8_t dw[] = {0x5A, 0xA5, 0x05, 0x82, 0x20, 0x45, 0x00, 0x20}; // сторка данных для отправки
 
 /* USER CODE END 0 */
 
@@ -99,6 +103,7 @@ int main(void)
   MX_FSMC_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
 				lcdBacklightOn();
@@ -123,7 +128,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+//	  writeHalfWordDWIN(0x2045, 0x10);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -204,6 +209,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
                //uint16_t
         	    count_pulse = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4
                 // uint32_t freq = TIM4->CNT; // это вариант на регистрах
+        	  //  writeVariableDWIN(5, 2045, (uint8_t *) &count_pulse);
+        	//    void writeHalfWordDWIN(uint16_t adress, uint16_t data);
+
+                  writeHalfWordDWIN(0x2045, 0x10);
+
+        	  //  HAL_UART_Transmit(&huart1, dw, 8,0xFF);
 
 ///////////////////////// вывод инфы ///////////////////////////////
 //          char str[96] = {0,};
