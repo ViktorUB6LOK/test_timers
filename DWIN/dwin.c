@@ -198,7 +198,9 @@ void writeHalfWordDWIN(uint16_t adress, uint16_t data)
   str[6] = (data & 0xFF00)>>8;
   str[7] = data & 0xFF;
 
-  HAL_UART_Transmit(&DWIN_UART, str, 8,0xFF);    
+  HAL_UART_Transmit(&DWIN_UART, str, 8,0x01);
+
+  HAL_UART_Transmit_IT(&DWIN_UART, str, 8);
 }
 //==============================================================================
 //--------------------------Write Variable Word---------------------------------

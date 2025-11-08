@@ -28,7 +28,8 @@
 #include "ili9341.h"
 #include <stdio.h>
 #include <string.h>
-#include "../../DWIN/dwin.h"
+#include "dwin.h"
+#include "AD9833.h"
 
 /* USER CODE END Includes */
 
@@ -119,8 +120,12 @@ int main(void)
 	
 	            lcdFillRect(300, 0, 320, 20, COLOR_RED);
 
+	            AD9833_Init(SQR, 4000, 0); // начальная инициализация - меандр, 4кГц - для тестирования
+
 	        HAL_TIM_Base_Start_IT(&htim3);
-	        HAL_TIM_Base_Start(&htim4);
+	       HAL_TIM_Base_Start(&htim4);
+
+	 //       __HAL_UART_ENABLE_IT(&huart1, UART_IT_TXE);
 
   /* USER CODE END 2 */
 
@@ -197,22 +202,23 @@ void printedtxt(void)  // Вывод на LCD данных
     lcdSetCursor(100, 190);
     lcdPrintf(strC);
 
+
+
 //		 memset (strX, 0, sizeof (strX));
 //		 memset (strY, 0, sizeof (strY));
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-        if(htim == &htim3)
+        if(htim == &htim3) // частота 5 Гц (0,2 сек)
         {
         	    HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
                //uint16_t
-        	    count_pulse = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4
-                // uint32_t freq = TIM4->CNT; // это вариант на регистрах
-        	  //  writeVariableDWIN(5, 2045, (uint8_t *) &count_pulse);
-        	//    void writeHalfWordDWIN(uint16_t adress, uint16_t data);
+        	    count_pulse = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
 
-                  writeHalfWordDWIN(0x2045, 0x10);
+                  writeHalfWordDWIN(0x2045, count_pulse*5/60);
+
+                  AD9833_SetWaveData(count_pulse*5,1);  // установка измеренной частоты
 
         	  //  HAL_UART_Transmit(&huart1, dw, 8,0xFF);
 
