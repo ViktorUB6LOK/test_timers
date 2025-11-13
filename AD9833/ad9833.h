@@ -6,6 +6,7 @@
 *************************************************************************************/
 #ifndef _AD_9833_H
 #define _AD_9833_H
+//#include "main.h"
 #include <math.h>
 #include "stm32f4xx_hal.h"
 

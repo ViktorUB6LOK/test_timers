@@ -13,7 +13,7 @@
  * то и таймер №4 тоже остановится (перестанет считать импульсы) — в счётчике
  * таймера №4 будет лежать количество импульсов входящей частоты полученные
  * за одну секунду со входа TIM4_ETR.
- *
+ *-Для плавности - таймер 3 работает с частотой 5 Гц
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -29,8 +29,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "dwin.h"
-#include "AD9833.h"
-
+#include "ad9833.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -51,7 +50,11 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t count_pulse =0;  // глобальная переменная чтоб видеть отладку
+
+uint16_t count_pulse =0;       // глобальная переменная чтоб видеть отладку
+uint16_t old_count_pulse =0;
+bool flag_tim = false;
+
 // TODO Тест
 
 /* USER CODE END PV */
@@ -59,7 +62,7 @@ uint16_t count_pulse =0;  // глобальная переменная чтоб 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void printedtxt(void);
+void printedtxt(char * strinput);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -123,7 +126,7 @@ int main(void)
 	            AD9833_Init(SQR, 4000, 0); // начальная инициализация - меандр, 4кГц - для тестирования
 
 	        HAL_TIM_Base_Start_IT(&htim3);
-	       HAL_TIM_Base_Start(&htim4);
+	        HAL_TIM_Base_Start(&htim4);
 
 	 //       __HAL_UART_ENABLE_IT(&huart1, UART_IT_TXE);
 
@@ -133,7 +136,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  writeHalfWordDWIN(0x2045, 0x10);
+	  if ((flag_tim)&&(old_count_pulse != count_pulse)) {
+		  flag_tim = false;
+		  old_count_pulse = count_pulse;
+		  writeHalfWordDWIN(0x2045, count_pulse*5/60);        // отправка значения переменной на DWIN
+		  AD9833_SetWaveData(count_pulse*5,1);                // установка измеренной частоты
+	// отправка данных на LCD
+		  char str[30] = {0,};
+		  sprintf(str, "FREQUENCY:  %u\n", count_pulse*5);
+		  printedtxt(str);
+		  HAL_GPIO_TogglePin(Out_PA7_GPIO_Port, Out_PA7_Pin);
+	  }
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -190,46 +204,39 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 
 
-void printedtxt(void)  // Вывод на LCD данных
+void printedtxt(char * strinput)  // Вывод на LCD данных
 {
+	static uint8_t numstr = 1;       // номер строки на LCD
+	static uint8_t position = 1;     // номер стороки для отображения на LCD
+	char str[30] = {0,};
+	sprintf(str, "%u  %s\n", position, strinput);
+
+	if (numstr < 11) {
 	lcdSetTextFont(&Font12);
-	lcdSetCursor(100, 150);
-	lcdPrintf(strA);
-
-    lcdSetCursor(100, 170);
-	lcdPrintf(strB);
-
-    lcdSetCursor(100, 190);
-    lcdPrintf(strC);
-
-
-
-//		 memset (strX, 0, sizeof (strX));
-//		 memset (strY, 0, sizeof (strY));
+	lcdSetCursor(20, numstr*20);
+	lcdPrintf(str);
+	++numstr;
+	++position;}
+	else {
+		numstr =1;
+		lcdFillRGB(COLOR_WHITE);
+		lcdSetTextFont(&Font12);
+	    lcdSetCursor(20, numstr*20);
+		lcdPrintf(str);
+		++numstr;
+	    ++position;}
 }
+
+//		 memset (strX, 0, sizeof (strX)); // образец
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
         if(htim == &htim3) // частота 5 Гц (0,2 сек)
         {
         	    HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
-               //uint16_t
-        	    count_pulse = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
-
-                  writeHalfWordDWIN(0x2045, count_pulse*5/60);
-
-                  AD9833_SetWaveData(count_pulse*5,1);  // установка измеренной частоты
-
-        	  //  HAL_UART_Transmit(&huart1, dw, 8,0xFF);
-
-///////////////////////// вывод инфы ///////////////////////////////
-//          char str[96] = {0,};
-
-//          snprintf(str, 96, "FREQUENCY: %.3f MHz | %.3f KHz | %lu Hz\n--------------------\n", (float)freq / 1000000.0, (float)freq / 1000.0, freq);
-//          HAL_UART_Transmit(&huart1, (uint8_t*)str, strlen(str), 1000);
-
+        	    count_pulse = __HAL_TIM_GET_COUNTER(&htim4);                // значение в счётчике таймера №4 (за 0,2сек)
                 HAL_TIM_Base_Stop_IT(&htim3);
-
+                flag_tim = true;
 //////////////// обнуляем счётчики и рестартуем таймер №3 /////////////////
                 __HAL_TIM_SET_COUNTER(&htim3, 0x0000);
                 __HAL_TIM_SET_COUNTER(&htim4, 0x0000);

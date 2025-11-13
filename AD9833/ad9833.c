@@ -4,7 +4,7 @@
  Software:  IAR Embedded Workbench for ARM
  Hardware:  Any STM32 device
 *************************************************************************************/
-#include "AD9833.h"
+#include "ad9833.h"
 // ------------------- Variables ----------------
 uint16_t FRQLW = 0;    // MSB of Frequency Tuning Word
 uint16_t FRQHW = 0;    // LSB of Frequency Tuning Word
