@@ -22,7 +22,7 @@ static unsigned char lcdLandscapeConfig = 0;
 static unsigned char lcdPortraitMirrorConfig = 0;
 static unsigned char lcdLandscapeMirrorConfig = 0;
 
-static void				lcdDrawPixels(uint16_t x, uint16_t y, uint16_t *data, uint32_t dataLength);
+//static void				lcdDrawPixels(uint16_t x, uint16_t y, uint16_t *data, uint32_t dataLength);
 static void        		lcdReset(void);
 static void        		lcdWriteCommand(unsigned char command);
 static void             lcdWriteData(unsigned short data);
@@ -1072,18 +1072,18 @@ uint16_t lcdColor565(uint8_t r, uint8_t g, uint8_t b)
 
 /*---------Static functions--------------------------*/
 
-static void lcdDrawPixels(uint16_t x, uint16_t y, uint16_t *data, uint32_t dataLength)
-{
-  uint32_t i = 0;
-
-  lcdSetWindow(x, y, lcdProperties.width - 1, lcdProperties.height - 1);
-
-  do
-  {
-    lcdWriteData(data[i++]);
-  }
-  while (i < dataLength);
-}
+//static void lcdDrawPixels(uint16_t x, uint16_t y, uint16_t *data, uint32_t dataLength)
+//{
+//  uint32_t i = 0;
+//
+//  lcdSetWindow(x, y, lcdProperties.width - 1, lcdProperties.height - 1);
+//
+//  do
+//  {
+//    lcdWriteData(data[i++]);
+//  }
+//  while (i < dataLength);
+//}
 
 static void lcdReset(void)
 {

@@ -18,6 +18,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
@@ -34,11 +35,24 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+struct DWIN_STR {
+	uint16_t adress;
+	uint16_t data;
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
+//#define TIMER_ON                        // Внешний источник сигнала для измерения его частоты
+#define AD9833_ON                       // Генератор импульсов
+#define DWIN_Tx                          // Прием данных от DWIN (источник - DWIN)
+#define PRINT_TO_LCD                     // Печать данных на LCD
+
+//#define flowmeter_impuls_litr_in_min 600
+
+#define dwin_adress_flowmeter  0x2045
+#define dwin_adress_speedmeter 0x2034
 
 /* USER CODE END PD */
 
@@ -51,214 +65,272 @@
 
 /* USER CODE BEGIN PV */
 
-uint16_t count_pulse =0;       // глобальная переменная чтоб видеть отладку
-uint16_t old_count_pulse =0;
+uint16_t flowmeter_impuls_litr_in_min = 600;
+uint16_t max_flowmeret_pulse = 0;    // максимальная частота генератора
+uint16_t count_pulse = 0;           // глобальная переменная чтоб видеть отладку
+uint16_t old_count_pulse = 0;
+uint16_t dwin_data_flowmeter = 0;
+uint16_t dwin_data_speedmeter = 0;
+
 bool flag_tim = false;
-
-// TODO Тест
-
+bool flag_dwin_tx = false;
+struct DWIN_STR DWIN_VAR;
+extern struct readDataDWIN_P readDataDWIN;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-void printedtxt(char * strinput);
+void printedtxt(char*);
+void LCD_Start(void);
+void DWIN_Start(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-	 char strA[40]={0,};
-	 char strB[40]={0,};
-	 char strC[40]={0,};
-uint8_t dw[] = {0x5A, 0xA5, 0x05, 0x82, 0x20, 0x45, 0x00, 0x20}; // сторка данных для отправки
-
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
 
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_FSMC_Init();
-  MX_TIM3_Init();
-  MX_TIM4_Init();
-  MX_USART1_UART_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_DMA_Init();
+	MX_FSMC_Init();
+	MX_TIM3_Init();
+	MX_TIM4_Init();
+	MX_USART1_UART_Init();
+	/* USER CODE BEGIN 2 */
 
-				lcdBacklightOn();
-				lcdInit();
-				lcdSetOrientation(LCD_ORIENTATION_LANDSCAPE);
- 				lcdFillRGB(COLOR_WHITE);
-  
-				// Пишем текст сверху экрана
-				lcdSetTextFont(&Font12);
-				lcdSetTextColor(COLOR_BLACK, COLOR_WHITE);
-				lcdSetCursor(46, 5);   // xy
-			    lcdPrintf("Test LCD & TIMERS, Okt 2025, UB6LOK");
-	
-	            lcdFillRect(300, 0, 320, 20, COLOR_RED);
+	LCD_Start();
+	DWIN_Start();
 
-	            AD9833_Init(SQR, 4000, 0); // начальная инициализация - меандр, 4кГц - для тестирования
+#ifdef AD9833_ON
+	AD9833_Init(SQR, 4, 0); // начальная инициализация - меандр, 4Гц - для тестирования
+#endif /*AD9833_ON*/
 
-	        HAL_TIM_Base_Start_IT(&htim3);
-	        HAL_TIM_Base_Start(&htim4);
+#ifdef TIMER_ON
+	HAL_TIM_Base_Start_IT(&htim3);
+	HAL_TIM_Base_Start(&htim4);
+#endif  /*TIMER*/
 
-	 //       __HAL_UART_ENABLE_IT(&huart1, UART_IT_TXE);
+#ifdef DWIN_Tx
+	HAL_Delay(100);
+	dwinUartDmaInit();
+#endif /*DWIN_Tx*/
 
-  /* USER CODE END 2 */
+	max_flowmeret_pulse = (flowmeter_impuls_litr_in_min * 200) / 60;
+	// максимальная частота расходомера или генератора (имитатора расходомера)
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-	  if ((flag_tim)&&(old_count_pulse != count_pulse)) {
-		  flag_tim = false;
-		  old_count_pulse = count_pulse;
-		  writeHalfWordDWIN(0x2045, count_pulse*5/60);        // отправка значения переменной на DWIN
-		  AD9833_SetWaveData(count_pulse*5,1);                // установка измеренной частоты
-	// отправка данных на LCD
-		  char str[30] = {0,};
-		  sprintf(str, "FREQUENCY:  %u\n", count_pulse*5);
-		  printedtxt(str);
-		  HAL_GPIO_TogglePin(Out_PA7_GPIO_Port, Out_PA7_Pin);
-	  }
+	/* USER CODE END 2 */
 
-    /* USER CODE END WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1) {
+#ifdef TIMER_ON              //#if defined TIMER_ON || defined AD9833_ON
+		if ((flag_tim) && (old_count_pulse != count_pulse)) {
+			flag_tim = false;
+			old_count_pulse = count_pulse;
+			//	writeHalfWordDWIN(dwin_var_flowmeter, count_pulse * 5 / 60); // отправка значения переменной на DWIN
+			writeHalfWordDWIN(dwin_adress_flowmeter,
+					(count_pulse * 5 * 60) / (flowmeter_impuls_litr_in_min));
 
-    /* USER CODE BEGIN 3 */
-		
-  }
-  /* USER CODE END 3 */
+#ifdef AD9833_ON
+			AD9833_SetWaveData(count_pulse * 5, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
+#endif /*AD9833_ON*/
+
+			// отправка данных на LCD
+			char str[45] = { 0, };
+			sprintf(str, "FREQ: %u Hz -- Flowmeter: %u l/min\n",
+					count_pulse * 5,
+					(count_pulse * 5 * 60) / (flowmeter_impuls_litr_in_min));
+			printedtxt(str);
+			HAL_GPIO_TogglePin(Out_PA7_GPIO_Port, Out_PA7_Pin);
+		}
+#endif /*(TIMER_ON)*/
+
+#ifdef DWIN_Tx
+		if (flag_dwin_tx) {
+			flag_dwin_tx = false;
+			parsingDWIN();
+			DWIN_VAR.adress = readDataDWIN.parsingDataDWIN.data[0] << 8
+					| readDataDWIN.parsingDataDWIN.data[1];
+			DWIN_VAR.data = readDataDWIN.parsingDataDWIN.data[3] << 8
+					| readDataDWIN.parsingDataDWIN.data[4];
+			switch (DWIN_VAR.adress) {
+			case 0x2045:
+				dwin_data_flowmeter = DWIN_VAR.data;
+#ifdef AD9833_ON
+				AD9833_SetWaveData(dwin_data_flowmeter * flowmeter_impuls_litr_in_min / 60, 1);
+				// установка измеренной частоты (кол-во ипмульсов за секунду)
+#endif /*AD9833_ON*/
+				break;
+			case 0x2034:
+				dwin_data_speedmeter = DWIN_VAR.data;
+				break;
+			default:
+				break;
+			}
+
+			char str[45] = { 0, };
+			sprintf(str, "Flowmeter=%u, Speedmeter=%u \n", dwin_data_flowmeter,
+					dwin_data_speedmeter);
+			printedtxt(str);
+		}
+#endif /*TX_DWIN*/
+
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+	}
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
 
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_RCC_PWR_CLK_ENABLE();
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
-  RCC_OscInitStruct.PLL.PLLM = 4;
-  RCC_OscInitStruct.PLL.PLLN = 168;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
+	RCC_OscInitStruct.HSEState = RCC_HSE_ON;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
+	RCC_OscInitStruct.PLL.PLLM = 4;
+	RCC_OscInitStruct.PLL.PLLN = 168;
+	RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
+	RCC_OscInitStruct.PLL.PLLQ = 4;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
 /* USER CODE BEGIN 4 */
+void LCD_Start()                // Запуск LCD и вывод тестовой надписи
+{
+	lcdBacklightOn();
+	lcdInit();
+	lcdSetOrientation(LCD_ORIENTATION_LANDSCAPE);
+	lcdFillRGB(COLOR_WHITE);
 
-
-void printedtxt(char * strinput)  // Вывод на LCD данных
+	// Пишем текст сверху экрана
+	lcdSetTextFont(&Font12);
+	lcdSetTextColor(COLOR_BLACK, COLOR_WHITE);
+	lcdSetCursor(46, 5);   // xy
+	lcdPrintf("Test LCD & TIMERS, NOV 2025, UB6LOK");
+	lcdFillRect(300, 0, 320, 20, COLOR_RED);
+}
+void DWIN_Start() {
+	writeHalfWordDWIN(dwin_adress_flowmeter, 0);
+	writeHalfWordDWIN(dwin_adress_speedmeter, 0);
+}
+void printedtxt(char *strinput)  // Вывод на LCD данных
 {
 	static uint8_t numstr = 1;       // номер строки на LCD
 	static uint8_t position = 1;     // номер стороки для отображения на LCD
-	char str[30] = {0,};
-	sprintf(str, "%u  %s\n", position, strinput);
+	char str[45] = { 0, };
+	sprintf(str, "%u %s\n", position, strinput);
 
 	if (numstr < 11) {
-	lcdSetTextFont(&Font12);
-	lcdSetCursor(20, numstr*20);
-	lcdPrintf(str);
-	++numstr;
-	++position;}
-	else {
-		numstr =1;
-		lcdFillRGB(COLOR_WHITE);
 		lcdSetTextFont(&Font12);
-	    lcdSetCursor(20, numstr*20);
+		lcdSetCursor(20, numstr * 20);
 		lcdPrintf(str);
 		++numstr;
-	    ++position;}
+		++position;
+	} else { // переполнение строк на LCD
+		numstr = 1;
+		lcdFillRGB(COLOR_WHITE);
+		lcdSetTextFont(&Font12);
+		lcdSetCursor(20, numstr * 20);
+		lcdPrintf(str);
+		++numstr;
+		++position;
+	}
 }
 
 //		 memset (strX, 0, sizeof (strX)); // образец
 
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-        if(htim == &htim3) // частота 5 Гц (0,2 сек)
-        {
-        	    HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
-        	    count_pulse = __HAL_TIM_GET_COUNTER(&htim4);                // значение в счётчике таймера №4 (за 0,2сек)
-                HAL_TIM_Base_Stop_IT(&htim3);
-                flag_tim = true;
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim == &htim3) // частота 5 Гц (0,2 сек)
+			{
+		HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
+		count_pulse = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
+		if (count_pulse > max_flowmeret_pulse / 5) {
+			count_pulse = max_flowmeret_pulse / 5;
+		}  // ограничение по частоте - не более 400*5 = 2000 Гц
+		HAL_TIM_Base_Stop_IT(&htim3);
+		flag_tim = true;
 //////////////// обнуляем счётчики и рестартуем таймер №3 /////////////////
-                __HAL_TIM_SET_COUNTER(&htim3, 0x0000);
-                __HAL_TIM_SET_COUNTER(&htim4, 0x0000);
-                HAL_TIM_Base_Start_IT(&htim3);
-        }
+		__HAL_TIM_SET_COUNTER(&htim3, 0x0000);
+		__HAL_TIM_SET_COUNTER(&htim4, 0x0000);
+		HAL_TIM_Base_Start_IT(&htim3);
+	}
 }
-
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart == &huart1) {
+		flag_dwin_tx = true;
+	}
+}
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
+	}
+	/* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
 /**

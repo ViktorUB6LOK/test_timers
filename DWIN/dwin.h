@@ -1,3 +1,5 @@
+// https://dzen.ru/a/Ybf62cKi3FZhacI8  - взято отсюда
+
 #ifndef __DWIN_H
 #define __DWIN_H
 
@@ -15,7 +17,7 @@
 //==============================================================================
 #define DWIN_UART huart1
 
-#define DWIN_UART_BUFFER_SIZE 400
+#define DWIN_UART_BUFFER_SIZE 9 //20 //50 //400
 //==============================================================================
 //--------------------------------Variables-------------------------------------
 //==============================================================================
@@ -34,7 +36,7 @@ struct parsingDataDWIN_P
   uint16_t header;
   uint8_t length;
   commandDWIN command;
-  uint8_t data[249];
+  uint8_t data[5];
 };
 
 struct readDataDWIN_P{
