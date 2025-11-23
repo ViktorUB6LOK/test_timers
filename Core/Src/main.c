@@ -59,7 +59,7 @@ struct DWIN_STRUCT {
 
 //#define AD9833_ON                       // ВКЛ обоих генераторов импульсов (их 2 в проекте)
 
-#define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
+//#define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
 
 //#define PRINT_TO_LCD_ON                 // ВКЛ инициализация LCD и печать данных на нем
 //---------------------------------------------------------------------------------------------------------------
@@ -94,10 +94,10 @@ uint16_t old_count_flowmeter_pulse = 0;
 //uint16_t speedmeter_impuls_100metr = 160;        // Параметр датчика скорости - кол-во импульсов на 100 метров
 uint16_t max_speedmeter_pulse = 0;                 // максимальная частота генератора (speed)
 //float max_speedmeter_pulse = 0;                  // максимальная частота генератора (speed)
-//float
-float freq_speedmeter_pulse = 0.0f;                   // частота генератора (speed)
-uint32_t duration_pulse_speedmeter_ms = 0;         // длительность импульса с датчика скорости (генератора) в мс
-uint32_t old_duration_pulse_speedmeter_ms = 0;     // прежняя длительность импульса с датчика скорости (генератора) в мс
+
+float freq_speedmeter_pulse = 0.0f;                // частота генератора (speed)
+uint32_t duration_pulse_speedmeter_mks = 0;        // длительность импульса с датчика скорости (генератора) в мкс
+uint32_t old_duration_pulse_speedmeter_mks = 0;    // прежняя длительность импульса с датчика скорости (генератора) в мкс
 //uint8_t freq_measure_speedmeter = 5;             // Частота измерений speed (в секунду = Гц)
 //---------------------------------------------------------------------------------------------------------------
 uint16_t dwin_data_flowmeter = 0;   // есть же структура???
@@ -293,11 +293,11 @@ int main(void)
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 		 */
 
-		if ((flag_speedmeter_tim2_IT) && (old_duration_pulse_speedmeter_ms != duration_pulse_speedmeter_ms)) {
+		if ((flag_speedmeter_tim2_IT) && (old_duration_pulse_speedmeter_mks != duration_pulse_speedmeter_mks)) {
 			flag_speedmeter_tim2_IT = false;
-			old_duration_pulse_speedmeter_ms = duration_pulse_speedmeter_ms;
-			freq_speedmeter_pulse = 1000.0f / duration_pulse_speedmeter_ms; // вычисляем частоту
-			writeHalfWordDWIN(dwin_adress_speedmeter,
+			old_duration_pulse_speedmeter_mks = duration_pulse_speedmeter_mks;
+			freq_speedmeter_pulse = 1000000.0f / duration_pulse_speedmeter_mks; // вычисляем частоту
+			writeHalfWordDWIN(dwin_adress_speedmeter, (uint16_t)
 					((freq_speedmeter_pulse * speedmeter_impuls_100meter/100)*1.2));
 
 //#ifdef AD9833_ON
@@ -443,13 +443,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 		flag_dwin_tx_IT = true;
 	}
 }
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){ // EXTERN SPEEDMETER
+//------------------------------  EXTERN SPEEDMETER -------------------------------------------------
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
         if(htim->Instance == TIM2) {
                 if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)      // RISING с LOW на HIGH
                         __HAL_TIM_SET_COUNTER(&htim2, 0x0000);     // обнуление счётчика
                 else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) // RISING с LOW на HIGH
                 {
-                 duration_pulse_speedmeter_ms = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2) / 10; // чтение значения в регистре захвата/сравнения
+                 duration_pulse_speedmeter_mks = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2); // чтение значения в регистре захвата/сравнения
                  flag_speedmeter_tim2_IT = true;
                  HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);  // тест
                 }
