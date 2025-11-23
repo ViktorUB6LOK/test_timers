@@ -1,6 +1,6 @@
 /* USER CODE BEGIN Header */
 /*
- * Этап 1.
+ * Этап 1. (Данные с расходомера)
  *
  * При старте, таймер №3 будет аппаратно подавать этот сигнал на таймер №4
  * и тем самым запускать его. При остановке таймера №3 этот сигнал будет снят
@@ -15,9 +15,11 @@
  * за одну секунду со входа TIM4_ETR.
  * Для плавности - таймер 3 работает с частотой 5 Гц
  *
- * Этап 2.
+ * Этап 2. (Датчик скорости)
  *
- * Тоже самое, только для измерения скорости таймер 8 тактирует таймер 5 (ext input)
+ * Измерение частоты импульсов с датчика скорости производится путем вычисления длины импульса
+ * в режиме сравнения таймера 2. Зная длительность импульса, вычисляем частоту и соответственно
+ * скорость движения агрегата.
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -51,13 +53,11 @@ struct DWIN_STRUCT {
 /* USER CODE BEGIN PD */
 
 //------------------- ВКЛ - ВЫКЛ -------------------------------------------------------------------------------
-//#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
+#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
 
 #define EXTERN_SPEEDMETER_ON            // ВКЛ Внешний источник speedmeter (режим работы - сниффер)
-// !!!!!!!! - очень малая дискретность изменения частоты - метод не годится !
-// вычислять частоту по длительности импульса !!! частота - float!
 
-//#define AD9833_ON                       // ВКЛ обоих генераторов импульсов (их 2 в проекте)
+#define AD9833_ON                       // ВКЛ обоих генераторов импульсов (их 2 в проекте)
 
 //#define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
 
@@ -68,7 +68,7 @@ struct DWIN_STRUCT {
 #define freq_measure_flowmeter 5        // Частота измерений flow (в секунду = Гц) (настройка таймера 3)
 
 #define speedmeter_impuls_100meter 160       // Параметр датчика скорости - кол-во импульсов на 100 метров
-#define freq_measure_speedmeter    1        // Частота измерений flow (в секунду = Гц) (настройка таймера 8)
+#define freq_measure_speedmeter    1         // Частота измерений flow (в секунду = Гц) (настройка таймера 8)
 
 #define dwin_adress_flowmeter  0x2045
 #define dwin_adress_speedmeter 0x2034
@@ -264,10 +264,10 @@ int main(void)
 				AD9833_SetWaveData(dwin_data_flowmeter * flowmeter_impuls_litr / 60, 1);
 				// установка измеренной частоты (кол-во ипмульсов за секунду)
   #endif /*Modul_1_ON*/
-  #ifdef Modul_2_ON  // Только для проверки Modul_2 - SPEED !
-				AD9833_SetWaveData_2(dwin_data_flowmeter * flowmeter_impuls_litr / 60, 1);
-				// установка измеренной частоты (кол-во ипмульсов за секунду)
-  #endif /*Modul_2_ON*/
+//  #ifdef Modul_2_ON  // Только для проверки Modul_2 - SPEED !
+//				AD9833_SetWaveData_2(dwin_data_flowmeter * flowmeter_impuls_litr / 60, 1);
+//				// установка измеренной частоты (кол-во ипмульсов за секунду)
+//  #endif /*Modul_2_ON*/
 #endif /*AD9833_ON*/
 				break;
 			case 0x2034:
@@ -289,7 +289,7 @@ int main(void)
 #ifdef EXTERN_SPEEDMETER_ON
 
 		/*
-		 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
+		 * Проверка срабатывания прерывания по таймеру 2 и изменению переменной длительности импульса
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 		 */
 
@@ -300,14 +300,11 @@ int main(void)
 			writeHalfWordDWIN(dwin_adress_speedmeter, (uint16_t)
 					((freq_speedmeter_pulse * speedmeter_impuls_100meter/100)*1.2));
 
-//#ifdef AD9833_ON
-//    #ifdef Modul_1_ON
-//			AD9833_SetWaveData(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
-//    #endif /*Modul_1_ON*/
-//    #ifdef Modul_2_ON  // Только для проверки !!! Modul_2 - для SPEED !
-//			AD9833_SetWaveData_2(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
-//    #endif /*Modul_2_ON*/
-//#endif /*AD9833_ON*/
+#ifdef AD9833_ON
+    #ifdef Modul_2_ON  // Modul_2 - для SPEED !
+			AD9833_SetWaveData_2(freq_speedmeter_pulse, 0); // установка измеренной частоты импульсов с датчика скорости
+    #endif /*Modul_2_ON*/
+#endif /*AD9833_ON*/
 
 			// отправка данных на LCD
 //#ifdef PRINT_TO_LCD_ON

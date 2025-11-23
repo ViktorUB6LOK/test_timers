@@ -8,7 +8,7 @@
 #define _AD_9833_H
 
 #define Modul_1_ON              // ВКЛ - Первый модуль
-//#define Modul_2_ON              // ВКЛ - Второй модуль
+#define Modul_2_ON              // ВКЛ - Второй модуль
 
 //#include "main.h"
 #include <math.h>
@@ -18,14 +18,14 @@
 #define FMCLK 25000000        // Master Clock On AD9833
 //-------- Первый модуль ----------------------
 #ifdef Modul_1_ON
-	#define AD9833PORT GPIOA      // PORT OF AD9833
+	#define AD9833PORT GPIOA      // PORT OF AD9833 Modul_1
 	#define AD9833DATA GPIO_PIN_0 // SPI DATA PIN
 	#define AD9833SCK GPIO_PIN_1  // SPI Clock PIN
 	#define AD9833SS GPIO_PIN_2   // SPI Chip Select
 #endif /*Modul_1_ON*/
 //-------- Второй модуль ----------------------
 #ifdef Modul_2_ON
-	#define AD9833PORT_2 GPIOA       // PORT OF AD9833
+	#define AD9833PORT_2 GPIOC       // PORT OF AD9833 Modul_2
 	#define AD9833DATA_2 GPIO_PIN_0  // SPI DATA PIN
 	#define AD9833SCK_2 GPIO_PIN_1   // SPI Clock PIN
 	#define AD9833SS_2 GPIO_PIN_2    // SPI Chip Select
