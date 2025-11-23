@@ -20,6 +20,8 @@
  * Измерение частоты импульсов с датчика скорости производится путем вычисления длины импульса
  * в режиме сравнения таймера 2. Зная длительность импульса, вычисляем частоту и соответственно
  * скорость движения агрегата.
+ *
+ * TODO Общая задача - проверить сброс показаний приборов расходомера и д.скорости на 0 при пропадании внешнего сигнала!
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -34,6 +36,7 @@
 /* USER CODE BEGIN Includes */
 #include "ili9341.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "dwin.h"
 #include "ad9833.h"
@@ -68,7 +71,7 @@ struct DWIN_STRUCT {
 #define freq_measure_flowmeter 5        // Частота измерений flow (в секунду = Гц) (настройка таймера 3)
 
 #define speedmeter_impuls_100meter 160       // Параметр датчика скорости - кол-во импульсов на 100 метров
-#define freq_measure_speedmeter    1         // Частота измерений flow (в секунду = Гц) (настройка таймера 8)
+//#define freq_measure_speedmeter    1         // Частота измерений flow (в секунду = Гц) (настройка таймера 8)
 
 #define dwin_adress_flowmeter  0x2045
 #define dwin_adress_speedmeter 0x2034
@@ -293,7 +296,7 @@ int main(void)
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 		 */
 
-		if ((flag_speedmeter_tim2_IT) && (old_duration_pulse_speedmeter_mks != duration_pulse_speedmeter_mks)) {
+		if ((flag_speedmeter_tim2_IT) && ( abs (old_duration_pulse_speedmeter_mks - duration_pulse_speedmeter_mks) > 100)) {
 			flag_speedmeter_tim2_IT = false;
 			old_duration_pulse_speedmeter_mks = duration_pulse_speedmeter_mks;
 			freq_speedmeter_pulse = 1000000.0f / duration_pulse_speedmeter_mks; // вычисляем частоту
