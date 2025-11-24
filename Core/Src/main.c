@@ -301,8 +301,8 @@ int main(void)
 			old_duration_pulse_speedmeter_mks = duration_pulse_speedmeter_mks;
 			freq_speedmeter_pulse = 1000000.0f / duration_pulse_speedmeter_mks; // вычисляем частоту
 			writeHalfWordDWIN(dwin_adress_speedmeter, (uint16_t)
-					((freq_speedmeter_pulse * speedmeter_impuls_100meter/100)*1.2));
-
+					(freq_speedmeter_pulse * (speedmeter_impuls_100meter/100)*3.6));
+// Скорость в км/ч = Частота импульсов с датчика * (Кол-во ипм на 100м / 100) * 3.6; (3.6 коэф перевода м/с в км/час)
 #ifdef AD9833_ON
     #ifdef Modul_2_ON  // Modul_2 - для SPEED !
 			AD9833_SetWaveData_2(freq_speedmeter_pulse, 0); // установка измеренной частоты импульсов с датчика скорости
