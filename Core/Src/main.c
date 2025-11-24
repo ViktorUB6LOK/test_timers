@@ -21,6 +21,8 @@
  * в режиме сравнения таймера 2. Зная длительность импульса, вычисляем частоту и соответственно
  * скорость движения агрегата.
  *
+ * Скорость в км/ч = Частота импульсов с датчика * (Кол-во ипм на 100м / 100) * 3.6; (3.6 коэф перевода м/с в км/час)
+ *
  * TODO Общая задача - проверить сброс показаний приборов расходомера и д.скорости на 0 при пропадании внешнего сигнала!
  */
 /* USER CODE END Header */
@@ -56,7 +58,7 @@ struct DWIN_STRUCT {
 /* USER CODE BEGIN PD */
 
 //------------------- ВКЛ - ВЫКЛ -------------------------------------------------------------------------------
-#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
+//#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
 
 #define EXTERN_SPEEDMETER_ON            // ВКЛ Внешний источник speedmeter (режим работы - сниффер)
 
@@ -95,13 +97,11 @@ uint16_t old_count_flowmeter_pulse = 0;
 //uint8_t freq_measure_flowmeter = 5;           // Частота измерений flow (в секунду = Гц)
 //--------------------- Датчик скорости ------------------------------------------------------------------------
 //uint16_t speedmeter_impuls_100metr = 160;        // Параметр датчика скорости - кол-во импульсов на 100 метров
-uint16_t max_speedmeter_pulse = 0;                 // максимальная частота генератора (speed)
-//float max_speedmeter_pulse = 0;                  // максимальная частота генератора (speed)
-
+float max_freq_speedmeter_pulse = 0.0f;               // максимальная частота генератора (или с датчика speed) для скорости 35 км\ч
 float freq_speedmeter_pulse = 0.0f;                // частота генератора (speed)
 uint32_t duration_pulse_speedmeter_mks = 0;        // длительность импульса с датчика скорости (генератора) в мкс
 uint32_t old_duration_pulse_speedmeter_mks = 0;    // прежняя длительность импульса с датчика скорости (генератора) в мкс
-//uint8_t freq_measure_speedmeter = 5;             // Частота измерений speed (в секунду = Гц)
+float speed_from_pulse = 0.0f;                     // вычисленная скорость из длительности импульса//uint8_t freq_measure_speedmeter = 5;             // Частота измерений speed (в секунду = Гц)
 //---------------------------------------------------------------------------------------------------------------
 uint16_t dwin_data_flowmeter = 0;   // есть же структура???
 uint16_t dwin_data_speedmeter = 0;
@@ -201,14 +201,11 @@ int main(void)
 	 */
 	dwinUartDmaInit();
 #endif /*DWIN_Tx_ON*/
-
 //---------------- максимальная частота расходомера или генератора (имитатора расходомера)
 	max_flowmeter_pulse = (flowmeter_impuls_litr * 200) / 60;
-
 //------------- максимальная частота датчика скорости или генератора (имитатора д.скорости)
-	max_speedmeter_pulse = (speedmeter_impuls_100meter * 10 * 35 / 3600);
-// !!!!!!!! - очень малая дискретность изменения частоты - метод не годится !
-
+	max_freq_speedmeter_pulse = 35 / (3.6 * speedmeter_impuls_100meter / 100 );
+// !!!!!!!! - очень малая дискретность изменения частоты !
 
   /* USER CODE END 2 */
 
@@ -218,18 +215,15 @@ int main(void)
 	while (1) {
 //=========================================================================================================================================
 #ifdef EXTERN_FLOWMETER_ON              //#if defined TIMER_ON || defined AD9833_ON
-
 		/*
 		 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 		 */
-
 		if ((flag_flowmeter_tim3_IT) && (old_count_flowmeter_pulse != count_flowmeter_pulse)) {
 			flag_flowmeter_tim3_IT = false;
 			old_count_flowmeter_pulse = count_flowmeter_pulse;
 			writeHalfWordDWIN(dwin_adress_flowmeter,
 					(count_flowmeter_pulse * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
-
 #ifdef AD9833_ON
     #ifdef Modul_1_ON
 			AD9833_SetWaveData(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
@@ -290,19 +284,21 @@ int main(void)
 #endif /*TX_DWIN_ON*/
 
 #ifdef EXTERN_SPEEDMETER_ON
-
 		/*
-		 * Проверка срабатывания прерывания по таймеру 2 и изменению переменной длительности импульса
+		 * Проверка срабатывания прерывания по таймеру 2 и изменению переменной длительности импульса(?!) см ниже в задаче
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 		 */
-
-		if ((flag_speedmeter_tim2_IT) && ( abs (old_duration_pulse_speedmeter_mks - duration_pulse_speedmeter_mks) > 100)) {
+		if ((flag_speedmeter_tim2_IT) && ( abs (old_duration_pulse_speedmeter_mks - duration_pulse_speedmeter_mks) > 100))
+		{
 			flag_speedmeter_tim2_IT = false;
 			old_duration_pulse_speedmeter_mks = duration_pulse_speedmeter_mks;
 			freq_speedmeter_pulse = 1000000.0f / duration_pulse_speedmeter_mks; // вычисляем частоту
+			speed_from_pulse = (freq_speedmeter_pulse * (speedmeter_impuls_100meter/100)*3.6);
 			writeHalfWordDWIN(dwin_adress_speedmeter, (uint16_t)
-					(freq_speedmeter_pulse * (speedmeter_impuls_100meter/100)*3.6));
+					(speed_from_pulse * 10)); // коэф 10 нужен для DWIN
+
 // Скорость в км/ч = Частота импульсов с датчика * (Кол-во ипм на 100м / 100) * 3.6; (3.6 коэф перевода м/с в км/час)
+// TODO Рассмотреть второе условие чтоб было по изменению скорости а не длительности импульсов!
 #ifdef AD9833_ON
     #ifdef Modul_2_ON  // Modul_2 - для SPEED !
 			AD9833_SetWaveData_2(freq_speedmeter_pulse, 0); // установка измеренной частоты импульсов с датчика скорости
