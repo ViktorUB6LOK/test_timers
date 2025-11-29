@@ -47,10 +47,10 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-struct DWIN_STRUCT {
+struct DWIN_VAR {
 	   uint16_t adress;
 	   uint16_t data;
-} DWIN_VAR;
+};
 
 /* USER CODE END PTD */
 
@@ -58,22 +58,21 @@ struct DWIN_STRUCT {
 /* USER CODE BEGIN PD */
 
 //------------------- ВКЛ - ВЫКЛ -------------------------------------------------------------------------------
-//#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
+#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
 
 #define EXTERN_SPEEDMETER_ON            // ВКЛ Внешний источник speedmeter (режим работы - сниффер)
 
 #define AD9833_ON                       // ВКЛ обоих генераторов импульсов (их 2 в проекте)
 
-//#define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
+#define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
 
-//#define PRINT_TO_LCD_ON                 // ВКЛ инициализация LCD и печать данных на нем
+#define PRINT_TO_LCD_ON                 // ВКЛ инициализация LCD и печать данных на нем
 //---------------------------------------------------------------------------------------------------------------
 
 #define flowmeter_impuls_litr 600       // Параметр расходомера - кол-во импульсов на литр
 #define freq_measure_flowmeter 5        // Частота измерений flow (в секунду = Гц) (настройка таймера 3)
 
 #define speedmeter_impuls_100meter 160       // Параметр датчика скорости - кол-во импульсов на 100 метров
-//#define freq_measure_speedmeter    1         // Частота измерений flow (в секунду = Гц) (настройка таймера 8)
 
 #define dwin_adress_flowmeter  0x2045
 #define dwin_adress_speedmeter 0x2034
@@ -103,8 +102,11 @@ uint32_t duration_pulse_speedmeter_mks = 0;        // длительность �
 uint32_t old_duration_pulse_speedmeter_mks = 0;    // прежняя длительность импульса с датчика скорости (генератора) в мкс
 float speed_from_pulse = 0.0f;                     // вычисленная скорость из длительности импульса//uint8_t freq_measure_speedmeter = 5;             // Частота измерений speed (в секунду = Гц)
 //---------------------------------------------------------------------------------------------------------------
-uint16_t dwin_data_flowmeter = 0;   // есть же структура???
-uint16_t dwin_data_speedmeter = 0;
+
+struct DWIN_VAR DWIN_VAR_flowmeter = {dwin_adress_flowmeter,0};
+struct DWIN_VAR DWIN_VAR_speedmeter = {dwin_adress_speedmeter,0};
+
+
 //---------------------------------------------------------------------------------------------------------------
 bool flag_flowmeter_tim3_IT = false;          // флаг сработки таймера 3 по прерыванию (счет EXT imp flowmeter)
 bool flag_dwin_tx_IT = false;                 // флаг получения данных от DWIN в буфер UART
@@ -249,16 +251,16 @@ int main(void)
 		if (flag_dwin_tx_IT) {
 			flag_dwin_tx_IT = false;
 			parsingDWIN();
-			DWIN_VAR.adress = readDataDWIN.parsingDataDWIN.data[0] << 8
+			uint16_t adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
 					| readDataDWIN.parsingDataDWIN.data[1];
-			DWIN_VAR.data = readDataDWIN.parsingDataDWIN.data[3] << 8
+			uint16_t data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
 					| readDataDWIN.parsingDataDWIN.data[4];
-			switch (DWIN_VAR.adress) {
-			case 0x2045:
-				dwin_data_flowmeter = DWIN_VAR.data;
+			switch (adress_parsing) {
+			case (dwin_adress_flowmeter):
+		          DWIN_VAR_flowmeter.data = data_parsing;
 #ifdef AD9833_ON
   #ifdef Modul_1_ON
-				AD9833_SetWaveData(dwin_data_flowmeter * flowmeter_impuls_litr / 60, 1);
+				AD9833_SetWaveData(DWIN_VAR_flowmeter.data * flowmeter_impuls_litr / 60, 1);
 				// установка измеренной частоты (кол-во ипмульсов за секунду)
   #endif /*Modul_1_ON*/
 //  #ifdef Modul_2_ON  // Только для проверки Modul_2 - SPEED !
@@ -267,16 +269,16 @@ int main(void)
 //  #endif /*Modul_2_ON*/
 #endif /*AD9833_ON*/
 				break;
-			case 0x2034:
-				dwin_data_speedmeter = DWIN_VAR.data;
+			case (dwin_adress_speedmeter):
+				DWIN_VAR_speedmeter.data = data_parsing;
 				break;
 			default:
 				break;
 			}
     #ifdef PRINT_TO_LCD_ON
 			char str[45] = { 0, };
-			sprintf(str, "Flowmeter=%u, Speedmeter=%u \n", dwin_data_flowmeter,
-					dwin_data_speedmeter);
+			sprintf(str, "Flowmeter=%u, Speedmeter=%u \n", DWIN_VAR_flowmeter.data,
+					DWIN_VAR_speedmeter.data);
 			printedtxt(str);
     #endif /*PRINT_TO_LCD_ON*/
 
