@@ -36,12 +36,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "ili9341.h"
+
+//#include "ili9341.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "dwin.h"
 #include "ad9833.h"
+#include "lcd_app.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -121,10 +124,10 @@ extern struct readDataDWIN_P readDataDWIN;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
-#ifdef PRINT_TO_LCD_ON
-	void LCD_Start(void);
-	void printedtxt(char*);
-#endif /*PRINT_TO_LCD_ON*/
+//#ifdef PRINT_TO_LCD_ON
+//	void LCD_Start(void);
+//	void printedtxt(char*);
+//#endif /*PRINT_TO_LCD_ON*/
 
 void DWIN_Reset_var(void);
 /* USER CODE END PFP */
@@ -372,49 +375,13 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void LCD_Start()                 // Запуск LCD и вывод тестовой надписи
-{
-	lcdBacklightOn();
-	lcdInit();
-	lcdSetOrientation(LCD_ORIENTATION_LANDSCAPE);
-	lcdFillRGB(COLOR_WHITE);
 
-	// Пишем текст сверху экрана
-	lcdSetTextFont(&Font12);
-	lcdSetTextColor(COLOR_BLACK, COLOR_WHITE);
-	lcdSetCursor(46, 5);   // xy
-	lcdPrintf("Test MY PROJECT, NOV 2025, UB6LOK");
-	lcdFillRect(300, 0, 320, 20, COLOR_RED);
-}
 void DWIN_Reset_var()            // Сброс на "0" переменных в DWIN
 {
 	writeHalfWordDWIN(dwin_adress_flowmeter, 0);
 	HAL_Delay(50);    // задержка не успевает сделать сброс
 	writeHalfWordDWIN(dwin_adress_speedmeter, 0);
 	HAL_Delay(50);
-}
-void printedtxt(char *strinput)  // Вывод на LCD данных
-{
-	static uint8_t numstr = 1;       // номер строки на LCD
-	static uint8_t position = 1;     // номер стороки для отображения на LCD
-	char str[45] = { 0, };
-	sprintf(str, "%u %s\n", position, strinput);
-
-	if (numstr < 11) {
-		lcdSetTextFont(&Font12);
-		lcdSetCursor(20, numstr * 20);
-		lcdPrintf(str);
-		++numstr;
-		++position;
-	} else { // переполнение строк на LCD
-		numstr = 1;
-		lcdFillRGB(COLOR_WHITE);
-		lcdSetTextFont(&Font12);
-		lcdSetCursor(20, numstr * 20);
-		lcdPrintf(str);
-		++numstr;
-		++position;
-	}
 }
 
 //		 memset (strX, 0, sizeof (strX)); // образец
