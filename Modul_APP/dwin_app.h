@@ -23,6 +23,7 @@ struct DWIN_VAR {             // объявление структура в main
 
 void DWIN_Set_var(void);
 void DWIN_Start_page(void);
+void DWIN_Select_mode (void);
 
 
 #endif /* DWIN_APP_H_ */

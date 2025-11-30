@@ -171,6 +171,8 @@ int main(void)
 #endif /*PRINT_TO_LCD_ON*/
 
 	DWIN_Start_page();
+	DWIN_Select_mode();
+
 // -------------Инициализация модулей AD9833 ---------------------------------------------
 #ifdef AD9833_ON
   #ifdef Modul_1_ON
@@ -369,14 +371,6 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-																																												//void DWIN_Reset_var()            // Сброс на "0" переменных в DWIN
-																																												//{
-																																												//	writeHalfWordDWIN(dwin_adress_flowmeter, 0);
-																																												//	HAL_Delay(50);    // задержка не успевает сделать сброс
-																																												//	writeHalfWordDWIN(dwin_adress_speedmeter, 0);
-																																												//	HAL_Delay(50);
-																																												//}
 
 //		 memset (strX, 0, sizeof (strX)); // образец
 
