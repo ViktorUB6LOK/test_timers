@@ -41,19 +41,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "dwin.h"
+//#include "dwin.h"
 #include "ad9833.h"
 #include "lcd_app.h"
+#include "dwin_app.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
-struct DWIN_VAR {
-	   uint16_t adress;
-	   uint16_t data;
-};
+//struct DWIN_VAR {
+//	   uint16_t adress;
+//	   uint16_t data;
+//};
 
 /* USER CODE END PTD */
 
@@ -61,11 +62,11 @@ struct DWIN_VAR {
 /* USER CODE BEGIN PD */
 
 //------------------- ВКЛ - ВЫКЛ -------------------------------------------------------------------------------
-#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
+//#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
 
-#define EXTERN_SPEEDMETER_ON            // ВКЛ Внешний источник speedmeter (режим работы - сниффер)
+//#define EXTERN_SPEEDMETER_ON            // ВКЛ Внешний источник speedmeter (режим работы - сниффер)
 
-#define AD9833_ON                       // ВКЛ обоих генераторов импульсов (их 2 в проекте)
+//#define AD9833_ON                       // ВКЛ обоих генераторов импульсов (их 2 в проекте)
 
 #define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
 
@@ -76,9 +77,6 @@ struct DWIN_VAR {
 #define freq_measure_flowmeter 5        // Частота измерений flow (в секунду = Гц) (настройка таймера 3)
 
 #define speedmeter_impuls_100meter 160       // Параметр датчика скорости - кол-во импульсов на 100 метров
-
-#define dwin_adress_flowmeter  0x2045
-#define dwin_adress_speedmeter 0x2034
 
 /* USER CODE END PD */
 
@@ -124,12 +122,7 @@ extern struct readDataDWIN_P readDataDWIN;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
-//#ifdef PRINT_TO_LCD_ON
-//	void LCD_Start(void);
-//	void printedtxt(char*);
-//#endif /*PRINT_TO_LCD_ON*/
-
-void DWIN_Reset_var(void);
+//void DWIN_Reset_var(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -176,7 +169,8 @@ int main(void)
 #ifdef PRINT_TO_LCD_ON
 	LCD_Start();
 #endif /*PRINT_TO_LCD_ON*/
-	DWIN_Reset_var();
+
+	DWIN_Start_page();
 // -------------Инициализация модулей AD9833 ---------------------------------------------
 #ifdef AD9833_ON
   #ifdef Modul_1_ON
@@ -376,13 +370,13 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-void DWIN_Reset_var()            // Сброс на "0" переменных в DWIN
-{
-	writeHalfWordDWIN(dwin_adress_flowmeter, 0);
-	HAL_Delay(50);    // задержка не успевает сделать сброс
-	writeHalfWordDWIN(dwin_adress_speedmeter, 0);
-	HAL_Delay(50);
-}
+																																												//void DWIN_Reset_var()            // Сброс на "0" переменных в DWIN
+																																												//{
+																																												//	writeHalfWordDWIN(dwin_adress_flowmeter, 0);
+																																												//	HAL_Delay(50);    // задержка не успевает сделать сброс
+																																												//	writeHalfWordDWIN(dwin_adress_speedmeter, 0);
+																																												//	HAL_Delay(50);
+																																												//}
 
 //		 memset (strX, 0, sizeof (strX)); // образец
 
