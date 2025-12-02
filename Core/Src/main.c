@@ -171,7 +171,8 @@ int main(void)
 #endif /*PRINT_TO_LCD_ON*/
 
 	DWIN_Start_page();
-	DWIN_Select_mode();
+//	DWIN_Select_mode();
+
 
 // -------------Инициализация модулей AD9833 ---------------------------------------------
 #ifdef AD9833_ON
@@ -215,7 +216,12 @@ int main(void)
 //=========================================================================================================================================
 	while (1) {
 //=========================================================================================================================================
-#ifdef EXTERN_FLOWMETER_ON              //#if defined TIMER_ON || defined AD9833_ON
+
+		DWIN_Select_mode();
+
+
+
+		#ifdef EXTERN_FLOWMETER_ON              //#if defined TIMER_ON || defined AD9833_ON
 		/*
 		 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
@@ -246,43 +252,43 @@ int main(void)
 		}
 #endif /*EXTERN_FLOWMETER_ON*/
 
-#ifdef DWIN_Tx_ON
-		if (flag_dwin_tx_IT) {
-			flag_dwin_tx_IT = false;
-			parsingDWIN();
-			uint16_t adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
-					| readDataDWIN.parsingDataDWIN.data[1];
-			uint16_t data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
-					| readDataDWIN.parsingDataDWIN.data[4];
-			switch (adress_parsing) {
-			case (dwin_adress_flowmeter):
-		          DWIN_VAR_flowmeter.data = data_parsing;
-#ifdef AD9833_ON
-  #ifdef Modul_1_ON
-				AD9833_SetWaveData(DWIN_VAR_flowmeter.data * flowmeter_impuls_litr / 60, 1);
-				// установка измеренной частоты (кол-во ипмульсов за секунду)
-  #endif /*Modul_1_ON*/
-//  #ifdef Modul_2_ON  // Только для проверки Modul_2 - SPEED !
-//				AD9833_SetWaveData_2(dwin_data_flowmeter * flowmeter_impuls_litr / 60, 1);
+//#ifdef DWIN_Tx_ON
+//		if (flag_dwin_tx_IT) {
+//			flag_dwin_tx_IT = false;
+//			parsingDWIN();
+//			uint16_t adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
+//					| readDataDWIN.parsingDataDWIN.data[1];
+//			uint16_t data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
+//					| readDataDWIN.parsingDataDWIN.data[4];
+//			switch (adress_parsing) {
+//			case (dwin_adress_flowmeter):
+//		          DWIN_VAR_flowmeter.data = data_parsing;
+//#ifdef AD9833_ON
+//  #ifdef Modul_1_ON
+//				AD9833_SetWaveData(DWIN_VAR_flowmeter.data * flowmeter_impuls_litr / 60, 1);
 //				// установка измеренной частоты (кол-во ипмульсов за секунду)
-//  #endif /*Modul_2_ON*/
-#endif /*AD9833_ON*/
-				break;
-			case (dwin_adress_speedmeter):
-				DWIN_VAR_speedmeter.data = data_parsing;
-				break;
-			default:
-				break;
-			}
-    #ifdef PRINT_TO_LCD_ON
-			char str[45] = { 0, };
-			sprintf(str, "Flowmeter=%u, Speedmeter=%u \n", DWIN_VAR_flowmeter.data,
-					DWIN_VAR_speedmeter.data);
-			printedtxt(str);
-    #endif /*PRINT_TO_LCD_ON*/
-
-		}
-#endif /*TX_DWIN_ON*/
+//  #endif /*Modul_1_ON*/
+////  #ifdef Modul_2_ON  // Только для проверки Modul_2 - SPEED !
+////				AD9833_SetWaveData_2(dwin_data_flowmeter * flowmeter_impuls_litr / 60, 1);
+////				// установка измеренной частоты (кол-во ипмульсов за секунду)
+////  #endif /*Modul_2_ON*/
+//#endif /*AD9833_ON*/
+//				break;
+//			case (dwin_adress_speedmeter):
+//				DWIN_VAR_speedmeter.data = data_parsing;
+//				break;
+//			default:
+//				break;
+//			}
+//    #ifdef PRINT_TO_LCD_ON
+//			char str[45] = { 0, };
+//			sprintf(str, "Flowmeter=%u, Speedmeter=%u \n", DWIN_VAR_flowmeter.data,
+//					DWIN_VAR_speedmeter.data);
+//			printedtxt(str);
+//    #endif /*PRINT_TO_LCD_ON*/
+//
+//		}
+//#endif /*TX_DWIN_ON*/
 
 #ifdef EXTERN_SPEEDMETER_ON
 		/*

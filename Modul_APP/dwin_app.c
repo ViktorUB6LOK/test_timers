@@ -29,11 +29,11 @@ void DWIN_Start_page() {
 	HAL_Delay(400);
 }
 
-void DWIN_Select_mode() {
+void DWIN_Select_mode() { // перенос в основной цикл
 	bool flag_select_mode = false;
 	uint16_t adress_parsing = 0;
 	uint16_t data_parsing   = 0;
-	dwinUartDmaInit();
+//	dwinUartDmaInit();
 
 	while (!flag_select_mode){
 		if (flag_dwin_tx_IT) {
