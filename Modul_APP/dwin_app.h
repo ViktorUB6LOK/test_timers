@@ -10,6 +10,7 @@
 
 #include "main.h"
 #include "dwin.h"
+#include "ad9833_app.h"
 
 #define dwin_adress_flowmeter  0x1000
 #define dwin_adress_speedmeter 0x2000

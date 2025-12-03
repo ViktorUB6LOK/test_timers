@@ -83,9 +83,15 @@ void func_1 (){
 
 							switch (adress_parsing) {
 									      case (dwin_adress_flowmeter_setting):      // если нажали на выбор коэфф. литр/мин
+									    		  setting_ratio_flowmeter = data_parsing;
+									    		  send_data_to_ad9833 (data_flowmeter, setting_ratio_flowmeter);
+
 									    		  // передаем в функцию обработки поток + коэфф.
 									    	  break;
 									      case (dwin_adress_flowmeter):            // если нажата - изменяем поток и даем команду на AD9833
+		                                           data_flowmeter = data_parsing;
+		                                           send_data_to_ad9833 (data_flowmeter, setting_ratio_flowmeter);
+
 	                                            	// передаем в функцию обработки поток + коэфф.
 									    	  break;
 									      case (dwin_adress_button_back):          // если нажата выбор режима - true и выходим из функции
