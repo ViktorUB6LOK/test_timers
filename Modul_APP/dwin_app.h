@@ -16,6 +16,9 @@
 #define dwin_adress_flowmeter_setting  0x1010
 #define dwin_adress_speedmeter_setting 0x2010
 
+#define dwin_adress_button_back 0x0000
+// + указать адресс ( значение кнопки перехода в выбор режима)
+
 struct DWIN_VAR {             // объявление структура в main.c
 	   uint16_t adress;
 	   uint16_t data;
@@ -24,6 +27,7 @@ struct DWIN_VAR {             // объявление структура в main
 void DWIN_Set_var(void);
 void DWIN_Start_page(void);
 void DWIN_Select_mode (void);
+void func_1 (void);
 
 
 #endif /* DWIN_APP_H_ */
