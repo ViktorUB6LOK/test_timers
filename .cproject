@@ -250,6 +250,9 @@
 		<scannerConfigBuildInfo instanceId="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.release.1902232139;com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.release.1902232139.;com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.720183893;com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.699630436">
 			<autodiscovery enabled="false" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.release.1902232139.325770263;com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.release.1902232139.325770263.;com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.1327029152;com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1292522152">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1655543085;com.st.stm32cube.ide.mcu.gnu.managedbuild.config.exe.debug.1655543085.;com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.1170998600;com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.1941881006">
 			<autodiscovery enabled="false" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
