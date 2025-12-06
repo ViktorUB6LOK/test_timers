@@ -11,13 +11,17 @@
 #include "main.h"
 #include "dwin.h"
 #include "ad9833_app.h"
+#include "setting.h"
 
-#define dwin_adress_flowmeter  0x1000
-#define dwin_adress_speedmeter 0x2000
-#define dwin_adress_flowmeter_setting  0x1010
-#define dwin_adress_speedmeter_setting 0x2010
+// Перенос в settng.h
 
-#define dwin_adress_button_back 0x5001
+//#define dwin_adress_flowmeter  0x1000
+//#define dwin_adress_speedmeter 0x2000
+//#define dwin_adress_flowmeter_setting  0x1010
+//#define dwin_adress_speedmeter_setting 0x2010
+//#define dwin_adress_button_flowmeter_start 0x1020
+//#define dwin_adress_button_speedmeter_start 0x2020
+//#define dwin_adress_button_back 0x5001
 
 
 struct DWIN_VAR {             // объявление структура в main.c
