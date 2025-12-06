@@ -36,25 +36,15 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
-//#include "ili9341.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-//#include "dwin.h"
 #include "ad9833.h"
 #include "lcd_app.h"
-#include "dwin_app.h"
-
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
-//struct DWIN_VAR {
-//	   uint16_t adress;
-//	   uint16_t data;
-//};
 
 /* USER CODE END PTD */
 
@@ -65,8 +55,6 @@
 //#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
 
 //#define EXTERN_SPEEDMETER_ON            // ВКЛ Внешний источник speedmeter (режим работы - сниффер)
-
-#define AD9833_ON                       // ВКЛ обоих генераторов импульсов (их 2 в проекте)
 
 #define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
 
@@ -165,22 +153,15 @@ int main(void)
   MX_TIM4_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
+
   /* USER CODE BEGIN 2 */
 #ifdef PRINT_TO_LCD_ON
 	LCD_Start();
 #endif /*PRINT_TO_LCD_ON*/
 
 	DWIN_Start_page();
+	INIT_AD9833 ();
 
-// -------------Инициализация модулей AD9833 ---------------------------------------------
-#ifdef AD9833_ON
-  #ifdef Modul_1_ON
-	AD9833_Init(SQR, 0, 0); // начальная инициализация - меандр, 4 (0)Гц - для тестирования 1-й "0"
-  #endif /*Modul_1_ON*/
-  #ifdef Modul_2_ON
-	AD9833_Init_2(SQR, 0, 0); // начальная инициализация - меандр, 4 (0) Гц - для тестирования
-  #endif /*Modul_2_ON*/
-#endif /*AD9833_ON*/
 // ---------------------------------------------------------------------------------------
 #ifdef EXTERN_FLOWMETER_ON
 	HAL_TIM_Base_Start_IT(&htim3);
@@ -229,14 +210,12 @@ int main(void)
 			old_count_flowmeter_pulse = count_flowmeter_pulse;
 			writeHalfWordDWIN(dwin_adress_flowmeter,
 					(count_flowmeter_pulse * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
-#ifdef AD9833_ON
     #ifdef Modul_1_ON
 			AD9833_SetWaveData(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
     #endif /*Modul_1_ON*/
     #ifdef Modul_2_ON  // Только для проверки !!! Modul_2 - для SPEED !
 			AD9833_SetWaveData_2(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
     #endif /*Modul_2_ON*/
-#endif /*AD9833_ON*/
 
 			// отправка данных на LCD
 #ifdef PRINT_TO_LCD_ON
@@ -304,11 +283,9 @@ int main(void)
 
 // Скорость в км/ч = Частота импульсов с датчика * (Кол-во ипм на 100м / 100) * 3.6; (3.6 коэф перевода м/с в км/час)
 // TODO Рассмотреть второе условие чтоб было по изменению скорости а не длительности импульсов!
-#ifdef AD9833_ON
     #ifdef Modul_2_ON  // Modul_2 - для SPEED !
 			AD9833_SetWaveData_2(freq_speedmeter_pulse, 0); // установка измеренной частоты импульсов с датчика скорости
     #endif /*Modul_2_ON*/
-#endif /*AD9833_ON*/
 
 			// отправка данных на LCD
 //#ifdef PRINT_TO_LCD_ON

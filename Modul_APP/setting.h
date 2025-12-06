@@ -8,6 +8,11 @@
 #ifndef SETTING_H_
 #define SETTING_H_
 
+// -------------------- Модули AD9833 настраиваются в ad9833.h -----------------------------------
+
+#define Modul_1_ON              // ВКЛ - Первый модуль
+#define Modul_2_ON              // ВКЛ - Второй модуль
+
 // ------------------- Setting dwin_app -------------------------------
 #define dwin_adress_flowmeter  0x1000
 #define dwin_adress_flowmeter_setting  0x1010
@@ -30,6 +35,8 @@
 #define dwin_data_app_flowmeter_speedmeter 0x0003              // режим совмещения расходомера и спидометра
 
 // --------------------------------------------------------------------
-
+enum dwin_page {
+	page_start = 1, page_flowmeter, page_speedmeter, page_flowmeter_speedmeter
+};
 
 #endif /* SETTING_H_ */

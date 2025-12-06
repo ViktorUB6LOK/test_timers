@@ -33,6 +33,8 @@ extern "C" {
 /* USER CODE BEGIN Includes */
 
 #include "dwin_app.h"
+#include "setting.h"
+
 
 /* USER CODE END Includes */
 

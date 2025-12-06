@@ -7,12 +7,13 @@
 #ifndef _AD_9833_H
 #define _AD_9833_H
 
-#define Modul_1_ON              // ВКЛ - Первый модуль
-#define Modul_2_ON              // ВКЛ - Второй модуль
+//#define Modul_1_ON              // ВКЛ - Первый модуль
+//#define Modul_2_ON              // ВКЛ - Второй модуль
 
 //#include "main.h"
 #include <math.h>
 #include "stm32f4xx_hal.h"
+#include "setting.h"
 
 // ------------------------- Defines -------------------------
 #define FMCLK 25000000        // Master Clock On AD9833
