@@ -263,8 +263,12 @@ void func_3 (){
 					if (data_parsing == dwin_data_app_change_menu) {
 						power_off_ad9833();
 						power_off_ad9833_2();
-						writeWordDWIN(dwin_adress_button_flowmeter_start, 0);
-						writeWordDWIN(dwin_adress_button_speedmeter_start, 0);
+						writeWordDWIN(dwin_adress_button_flowmeter_start, 0); // сброс кнопки Старт-Стоп
+					        	HAL_Delay(10);
+						writeWordDWIN(dwin_adress_button_speedmeter_start, 0);// сброс кнопки Старт-Стоп
+					        	HAL_Delay(10);
+					        data_flowmeter  = data_flowmeter_default;       // сброс расходомера на значение по умолчанию (0)
+					        data_speedmeter = data_speedmeter_default;      // сброс спидометра на значение по умолчанию (0)
 						goToPageDWIN(page_start);
 					    flag_func_3 = true;
 					}
