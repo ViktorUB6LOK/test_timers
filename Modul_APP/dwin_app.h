@@ -34,5 +34,6 @@ void DWIN_Start_page(void);
 void DWIN_Select_mode (void);
 void func_1 (void);
 void func_2 (void);
+void func_3 (void);
 
 #endif /* DWIN_APP_H_ */

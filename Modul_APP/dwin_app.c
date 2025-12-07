@@ -45,6 +45,7 @@ void DWIN_Select_mode() {
 			break;
 		case (dwin_data_app_flowmeter_speedmeter): // режим 3 (генератор flowmeter + speedmeter)
 			goToPageDWIN(page_flowmeter_speedmeter); // переключение на страницу режима 3
+		    func_3();
 			break;
 		default:
 			break;
@@ -165,7 +166,6 @@ void func_2() {
 				if (status_speedmeter)
 					send_data_to_ad9833_2(data_speedmeter,
 							setting_ratio_speedmeter);
-
 				// передаем в функцию обработки скорость + коэфф.
 				break;
 			case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
@@ -181,4 +181,99 @@ void func_2() {
 			}
 		}
 	}
+}
+
+void func_3 (){
+	    bool flag_func_3 = false;
+		bool status_flowmeter = false;
+	    bool status_speedmeter = false;
+
+		uint16_t adress_parsing = 0;
+		uint16_t data_parsing = 0;
+
+		static uint16_t setting_ratio_flowmeter = setting_ratio_flowmeter_default;
+		static uint16_t data_flowmeter = data_flowmeter_default;
+		static uint16_t data_speedmeter = data_speedmeter_default;
+		static uint16_t setting_ratio_speedmeter = setting_ratio_speedmeter_default;
+
+		// начальные установки -----------------------------------------------------------
+		writeHalfWordDWIN(dwin_adress_flowmeter, data_flowmeter);
+		HAL_Delay(10);
+		writeHalfWordDWIN(dwin_adress_flowmeter_setting, setting_ratio_flowmeter);
+		HAL_Delay(10);
+		writeHalfWordDWIN(dwin_adress_speedmeter, data_speedmeter);
+		HAL_Delay(10);
+		writeHalfWordDWIN(dwin_adress_speedmeter_setting, setting_ratio_speedmeter);
+		HAL_Delay(10);
+		// -------------------------------------------------------------------------------
+
+		while (!flag_func_3) { // пока не будет нажата кнопка выбора режима крутимся в цикле
+	if (flag_dwin_tx_IT) {
+				flag_dwin_tx_IT = false;
+				parsingDWIN();
+				adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
+						| readDataDWIN.parsingDataDWIN.data[1];
+				data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
+						| readDataDWIN.parsingDataDWIN.data[4];
+
+		switch (adress_parsing) {
+
+				case (dwin_adress_button_flowmeter_start):
+					status_flowmeter = (bool) data_parsing;
+					if (status_flowmeter)
+						send_data_to_ad9833(data_flowmeter,	setting_ratio_flowmeter);
+					else
+						power_off_ad9833(); // выключить AD
+					break;
+				case (dwin_adress_button_speedmeter_start):
+					status_speedmeter = (bool) data_parsing;
+				    if (status_speedmeter)
+					  send_data_to_ad9833_2(data_speedmeter,setting_ratio_speedmeter);
+					else
+					   power_off_ad9833_2(); // выключить AD_2
+				break;
+
+				case (dwin_adress_flowmeter_setting): // если нажали на выбор коэфф. литр/мин
+					setting_ratio_flowmeter = data_parsing;
+					if (status_flowmeter)
+						send_data_to_ad9833(data_flowmeter,	setting_ratio_flowmeter);
+					// передаем в функцию обработки поток + коэфф.
+					break;
+				case (dwin_adress_speedmeter_setting): // если нажали на выбор коэфф. имп/100м
+					setting_ratio_speedmeter = data_parsing;
+					if (status_speedmeter)
+						send_data_to_ad9833_2(data_speedmeter,setting_ratio_speedmeter);
+					// передаем в функцию обработки скорость + коэфф.
+					break;
+
+				case (dwin_adress_flowmeter): // если нажата - изменяем поток и даем команду на AD9833
+					data_flowmeter = data_parsing;
+					if (status_flowmeter)
+						send_data_to_ad9833(data_flowmeter,setting_ratio_flowmeter);
+					// передаем в функцию обработки поток + коэфф.
+					break;
+				case (dwin_adress_speedmeter): // если нажата - изменяем скорость и даем команду на AD9833
+					data_speedmeter = data_parsing;
+					if (status_speedmeter)
+						send_data_to_ad9833_2(data_speedmeter, setting_ratio_speedmeter);
+								// передаем в функцию обработки скорость + коэфф.
+					break;
+
+				case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
+					if (data_parsing == dwin_data_app_change_menu) {
+						power_off_ad9833();
+						power_off_ad9833_2();
+						writeWordDWIN(dwin_adress_button_flowmeter_start, 0);
+						writeWordDWIN(dwin_adress_button_speedmeter_start, 0);
+						goToPageDWIN(page_start);
+					    flag_func_3 = true;
+					}
+					break;
+
+				default:
+					break;
+				}
+			}
+		}
+
 }
