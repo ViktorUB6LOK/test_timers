@@ -104,10 +104,12 @@ void func_1() {
 				break;
 
 			case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
-				power_off_ad9833();
-				if (data_parsing == dwin_data_app_change_menu)
+				if (data_parsing == dwin_data_app_change_menu) {
+					power_off_ad9833();
+					writeWordDWIN(dwin_adress_button_flowmeter_start, 0);
 					goToPageDWIN(page_start);
-				flag_func_1 = true;
+				    flag_func_1 = true;
+				}
 				break;
 
 			default:
@@ -167,10 +169,12 @@ void func_2() {
 				// передаем в функцию обработки скорость + коэфф.
 				break;
 			case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
-				power_off_ad9833_2();
-				if (data_parsing == dwin_data_app_change_menu)
+				if (data_parsing == dwin_data_app_change_menu) {
+					power_off_ad9833_2();
+					writeWordDWIN(dwin_adress_button_speedmeter_start, 0);
 					goToPageDWIN(page_start);
-				flag_func_2 = true;
+				    flag_func_2 = true;
+				}
 				break;
 			default:
 				break;
