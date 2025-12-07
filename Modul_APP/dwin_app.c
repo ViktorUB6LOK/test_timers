@@ -237,26 +237,22 @@ void func_3 (){
 					setting_ratio_flowmeter = data_parsing;
 					if (status_flowmeter)
 						send_data_to_ad9833(data_flowmeter,	setting_ratio_flowmeter);
-					// передаем в функцию обработки поток + коэфф.
 					break;
 				case (dwin_adress_speedmeter_setting): // если нажали на выбор коэфф. имп/100м
 					setting_ratio_speedmeter = data_parsing;
 					if (status_speedmeter)
 						send_data_to_ad9833_2(data_speedmeter,setting_ratio_speedmeter);
-					// передаем в функцию обработки скорость + коэфф.
 					break;
 
 				case (dwin_adress_flowmeter): // если нажата - изменяем поток и даем команду на AD9833
 					data_flowmeter = data_parsing;
 					if (status_flowmeter)
 						send_data_to_ad9833(data_flowmeter,setting_ratio_flowmeter);
-					// передаем в функцию обработки поток + коэфф.
 					break;
 				case (dwin_adress_speedmeter): // если нажата - изменяем скорость и даем команду на AD9833
 					data_speedmeter = data_parsing;
 					if (status_speedmeter)
 						send_data_to_ad9833_2(data_speedmeter, setting_ratio_speedmeter);
-								// передаем в функцию обработки скорость + коэфф.
 					break;
 
 				case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
