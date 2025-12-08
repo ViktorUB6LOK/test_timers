@@ -6,7 +6,15 @@
  */
 #include "dwin_app.h"
 
-extern bool flag_dwin_tx_IT;
+//--- задекларированы в main.c ----------------------------------------------------------------------------------
+extern bool flag_dwin_tx_IT;                  // флаг получения данных от DWIN в буфер UART
+extern bool flag_flowmeter_tim3_IT;   // флаг сработки таймера 3 по прерыванию (счет EXT imp flowmeter)
+extern bool flag_speedmeter_tim2_IT;  // флаг сработки таймера 2 по прерыванию (счет EXT имп speedmeter)
+
+extern uint16_t input_pulse_freq_max ;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
+extern uint16_t input_pulse_freq     ;        // new частота генератора (flow). old var - count_flowmeter_pulse
+extern uint16_t input_pulse_freq_old ;        // old var - old_count_flowmeter_pulse
+//---------------------------------------------------------------------------------------------------------------
 extern struct readDataDWIN_P readDataDWIN;
 
 void DWIN_Start_page() {
@@ -46,6 +54,10 @@ void DWIN_Select_mode() {
 		case (dwin_data_app_flowmeter_speedmeter): // режим 3 (генератор flowmeter + speedmeter)
 			goToPageDWIN(page_flowmeter_speedmeter); // переключение на страницу режима 3
 		    func_3();
+			break;
+		case (dwin_data_app_IO_flowmeter): // режим 3 (генератор flowmeter + speedmeter)
+			goToPageDWIN(page_IO_flowmeter); // переключение на страницу режима 3
+			func_4();
 			break;
 		default:
 			break;
@@ -277,3 +289,75 @@ void func_3 (){
 		}
 
 }
+
+void func_4 (){
+	    HAL_TIM_Base_Start_IT(&htim3);
+		HAL_TIM_Base_Start(&htim4);
+		bool flag_func_4 = false;           // для выхода из функции - нажата кнопка выбора режима работы
+		bool status_flowmeter = false;      // Кнопка Старт - Стоп расходомера
+		uint16_t adress_parsing = 0;
+		uint16_t data_parsing = 0;
+		static uint16_t setting_ratio_flowmeter = setting_ratio_flowmeter_default;        // значение литр/мин
+		static uint16_t data_flowmeter = data_flowmeter_default;                          // начальное значение расходомера (0)
+
+
+//		input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
+//		uint16_t count_flowmeter_pulse = 0;     старое название переменной частота генератора (flow)
+//		uint16_t input_pulse_freq = 0;           // частота генератора (flow)
+//		uint16_t old_count_flowmeter_pulse = 0;  старое название переменной
+//		uint16_t input_pulse_freq_old = 0;       // предыдущее значение частоты генератора (flow) для сравнения при проверке условия
+
+		// начальные установки для отображения на dwin- приборе -------------------------
+			writeHalfWordDWIN(dwin_adress_flowmeter, data_flowmeter);
+			HAL_Delay(10);
+			writeHalfWordDWIN(dwin_adress_flowmeter_setting, setting_ratio_flowmeter);
+			HAL_Delay(10);
+    	// -------------------------------------------------------------------------------
+
+		while (!flag_func_4) {
+			if (flag_dwin_tx_IT) {  // сработало прерывание - UART буфер заполнен
+						flag_dwin_tx_IT = false;
+						parsingDWIN();
+						adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
+								| readDataDWIN.parsingDataDWIN.data[1];
+						data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
+								| readDataDWIN.parsingDataDWIN.data[4];
+			  switch (adress_parsing) {
+		          case (dwin_adress_flowmeter_setting): // если нажали на выбор коэфф. литр/мин - установка
+						setting_ratio_flowmeter = data_parsing;
+				     break;
+		          case (dwin_adress_button_flowmeter_start):  // нажали Старт
+		          				status_flowmeter = (bool) data_parsing;
+//		          				if (status_flowmeter)
+//		          					send_data_to_ad9833(data_flowmeter, setting_ratio_flowmeter);
+//		          				else
+//		          					power_off_ad9833(); // выключить AD
+		             break;
+		          case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
+		          		if (data_parsing == dwin_data_app_change_menu) {
+		          			power_off_ad9833();
+		          			writeWordDWIN(dwin_adress_button_flowmeter_start, 0);
+		          			goToPageDWIN(page_start);
+		          		    flag_func_4 = true;
+		          		}
+		             break;
+		          default:
+		             break;
+		     } /*switch*/
+	    } /*if*/
+/*
+* Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
+* (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
+*/
+	 if ((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != input_pulse_freq)) {
+		flag_flowmeter_tim3_IT = false;
+		input_pulse_freq_old = input_pulse_freq;
+//		writeHalfWordDWIN(dwin_adress_flowmeter,(input_pulse_freq * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
+//	      AD9833_SetWaveData(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во импульсов за секунду)
+
+					}
+
+    } /*while*/
+} /*end void*/
+
+

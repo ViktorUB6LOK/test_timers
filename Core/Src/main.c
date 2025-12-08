@@ -77,12 +77,10 @@
 
 /* USER CODE BEGIN PV */
 
-//-------------------- Расходомер -----------------------------------------------------------------------------
-//uint16_t flowmeter_impuls_litr = 600;         // Параметр расходомера - кол-во импульсов на литр
-uint16_t max_flowmeter_pulse = 0;             // максимальная частота генератора (flow)
-uint16_t count_flowmeter_pulse = 0;           // частота генератора (flow)
-uint16_t old_count_flowmeter_pulse = 0;
-//uint8_t freq_measure_flowmeter = 5;           // Частота измерений flow (в секунду = Гц)
+//-----Расходомер --НЕ ТРОГАТЬ !!! -------------------------------------------------------------------------------------
+uint16_t input_pulse_freq_max      = 0;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
+uint16_t input_pulse_freq          = 0;        // new частота генератора (flow). old var - count_flowmeter_pulse
+uint16_t input_pulse_freq_old = 0;        // old var - old_count_flowmeter_pulse
 //--------------------- Датчик скорости ------------------------------------------------------------------------
 //uint16_t speedmeter_impuls_100metr = 160;        // Параметр датчика скорости - кол-во импульсов на 100 метров
 float max_freq_speedmeter_pulse = 0.0f;               // максимальная частота генератора (или с датчика speed) для скорости 35 км\ч
@@ -96,7 +94,7 @@ struct DWIN_VAR DWIN_VAR_flowmeter = {dwin_adress_flowmeter,0};
 struct DWIN_VAR DWIN_VAR_speedmeter = {dwin_adress_speedmeter,0};
 
 
-//---------------------------------------------------------------------------------------------------------------
+//---НЕ трогать !!! Флаги прерываний !---------------------------------------------------------------------------
 bool flag_flowmeter_tim3_IT = false;          // флаг сработки таймера 3 по прерыванию (счет EXT imp flowmeter)
 bool flag_dwin_tx_IT = false;                 // флаг получения данных от DWIN в буфер UART
 bool flag_speedmeter_tim2_IT = false;         // флаг сработки таймера 2 по прерыванию (счет EXT имп speedmeter)
@@ -183,7 +181,11 @@ int main(void)
 	dwinUartDmaInit();
 #endif /*DWIN_Tx_ON*/
 //---------------- максимальная частота расходомера или генератора (имитатора расходомера)
-	max_flowmeter_pulse = (flowmeter_impuls_litr * 200) / 60;
+
+	input_pulse_freq_max = (600 * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
+
+	//input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
+
 //------------- максимальная частота датчика скорости или генератора (имитатора д.скорости)
 	max_freq_speedmeter_pulse = 35 / (3.6 * speedmeter_impuls_100meter / 100 );
 // !!!!!!!! - очень малая дискретность изменения частоты !
@@ -205,23 +207,23 @@ int main(void)
 		 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 		 */
-		if ((flag_flowmeter_tim3_IT) && (old_count_flowmeter_pulse != count_flowmeter_pulse)) {
+		if ((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != count_flowmeter_pulse)) {
 			flag_flowmeter_tim3_IT = false;
-			old_count_flowmeter_pulse = count_flowmeter_pulse;
+			input_pulse_freq_old = count_flowmeter_pulse;
 			writeHalfWordDWIN(dwin_adress_flowmeter,
-					(count_flowmeter_pulse * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
+					(input_pulse_freq * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
     #ifdef Modul_1_ON
-			AD9833_SetWaveData(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
+			AD9833_SetWaveData(input_pulse_freq * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
     #endif /*Modul_1_ON*/
     #ifdef Modul_2_ON  // Только для проверки !!! Modul_2 - для SPEED !
-			AD9833_SetWaveData_2(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
+			AD9833_SetWaveData_2(input_pulse_freq * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
     #endif /*Modul_2_ON*/
 
 			// отправка данных на LCD
 #ifdef PRINT_TO_LCD_ON
 			char str[50] = { 0, };
 			sprintf(str, "FREQ: %u Hz -- Flowmeter: %u l/min \n",
-					count_flowmeter_pulse * freq_measure_flowmeter,
+					input_pulse_freq * freq_measure_flowmeter,
 					(count_flowmeter_pulse * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
 			printedtxt(str);
 			HAL_GPIO_TogglePin(Out_PA7_GPIO_Port, Out_PA7_Pin);
@@ -291,7 +293,7 @@ int main(void)
 //#ifdef PRINT_TO_LCD_ON
 //			char str[50] = { 0, };
 //			sprintf(str, "FREQ: %u Hz -- Flowmeter: %u l/min \n",
-//					count_flowmeter_pulse * freq_measure_flowmeter,
+//					input_pulse_freq * freq_measure_flowmeter,
 //					(count_flowmeter_pulse * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
 //			printedtxt(str);
 //			HAL_GPIO_TogglePin(Out_PA7_GPIO_Port, Out_PA7_Pin);
@@ -359,10 +361,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	//---------------------------- FLOWMETER ---------------------------------------------------------
 	if (htim == &htim3) // частота 5 Гц (0,2 сек) = задается для расчетов - freq_measure_flowmeter
 			{
-		//HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);
-		count_flowmeter_pulse = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
-		if (count_flowmeter_pulse > max_flowmeter_pulse / freq_measure_flowmeter) {
-			count_flowmeter_pulse = max_flowmeter_pulse / freq_measure_flowmeter;
+		input_pulse_freq = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
+		if (input_pulse_freq > input_pulse_freq_max / freq_measure_input_pulse) {
+			input_pulse_freq = input_pulse_freq_max / freq_measure_input_pulse;
+
 		}  // ограничение по частоте - не более 400*5 = 2000 Гц
 		HAL_TIM_Base_Stop_IT(&htim3);
 		flag_flowmeter_tim3_IT = true;

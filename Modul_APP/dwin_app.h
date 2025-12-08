@@ -9,19 +9,10 @@
 #define DWIN_APP_H_
 
 #include "main.h"
+#include "tim.h"
 #include "dwin.h"
 #include "ad9833_app.h"
 #include "setting.h"
-
-// Перенос в settng.h
-
-//#define dwin_adress_flowmeter  0x1000
-//#define dwin_adress_speedmeter 0x2000
-//#define dwin_adress_flowmeter_setting  0x1010
-//#define dwin_adress_speedmeter_setting 0x2010
-//#define dwin_adress_button_flowmeter_start 0x1020
-//#define dwin_adress_button_speedmeter_start 0x2020
-//#define dwin_adress_button_back 0x5001
 
 
 struct DWIN_VAR {             // объявление структура в main.c
@@ -32,8 +23,9 @@ struct DWIN_VAR {             // объявление структура в main
 void DWIN_Set_var(void);
 void DWIN_Start_page(void);
 void DWIN_Select_mode (void);
-void func_1 (void);
-void func_2 (void);
-void func_3 (void);
+void func_1 (void);            // flowmeter
+void func_2 (void);            // speedmeter
+void func_3 (void);            // flowmeter_speedmeter
+void func_4 (void);            // IO flowmeter
 
 #endif /* DWIN_APP_H_ */
