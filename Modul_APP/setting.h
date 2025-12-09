@@ -17,7 +17,7 @@
 #define dwin_adress_flowmeter  0x1000
 #define dwin_adress_flowmeter_setting  0x1010
 #define dwin_adress_button_flowmeter_start 0x1020
-#define setting_ratio_flowmeter_default  600        // литр/мин начальные (стартовая страница)
+#define setting_ratio_flowmeter_default  600        // имп/литр начальные (стартовая страница)
 #define data_flowmeter_default  0                  // начальные данные (стартовая страница)
 #define data_flowmeter_max 200                     // максимальное значение расходомера
 
@@ -40,11 +40,13 @@
 #define freq_measure_input_pulse 5     // частота измерения входного сигнала 1 (flow) - настройка таймера 3 - 0,2сек
 
 
-/*   count_flowmeter_pulse            =     input_pulse_freq
-*    old_count_flowmeter_pulse        =     input_pulse_freq_old
-*    max_flowmeter_pulse              =     input_pulse_freq_max
-*    freq_measure_flowmeter           =     freq_measure_input_pulse
-*    старое обозначение               =     новое обозначение
+/* setting_ratio_flowmeter - параметр расходомера - кол-во имп/литр (задается пользователем)
+* count_flowmeter_pulse         =   input_pulse_counter  - счетчик кол-ва входных импульсов  из main.c
+*
+*    old_count_flowmeter_pulse        =     input_pulse_length_old          - старое значение длительности входного импульса (для сравнения)
+*    max_flowmeter_pulse              =     input_pulse_length_max          - максимальное значение входного импульса
+*    freq_measure_flowmeter           =     freq_measure_input_pulse_length      - частота измерения длительности входного импульса
+*    старое обозначение         =   новое обозначение
 */
 
 // --------------------------------------------------------------------

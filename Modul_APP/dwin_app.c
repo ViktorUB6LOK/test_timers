@@ -11,9 +11,9 @@ extern bool flag_dwin_tx_IT;                  // флаг получения д�
 extern bool flag_flowmeter_tim3_IT;   // флаг сработки таймера 3 по прерыванию (счет EXT imp flowmeter)
 extern bool flag_speedmeter_tim2_IT;  // флаг сработки таймера 2 по прерыванию (счет EXT имп speedmeter)
 
-extern uint16_t input_pulse_freq_max ;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
-extern uint16_t input_pulse_freq     ;        // new частота генератора (flow). old var - count_flowmeter_pulse
-extern uint16_t input_pulse_freq_old ;        // old var - old_count_flowmeter_pulse
+//extern uint16_t input_pulse_freq_max ;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
+extern uint16_t input_pulse_counter;            // счетчик кол-ва входных импульсов за (1/freq_measure_input_pulse =0.2 сек)
+//extern uint16_t input_pulse_length_old ;        // old var - old_count_flowmeter_pulse
 //---------------------------------------------------------------------------------------------------------------
 extern struct readDataDWIN_P readDataDWIN;
 
@@ -298,14 +298,12 @@ void func_4 (){
 		uint16_t adress_parsing = 0;
 		uint16_t data_parsing = 0;
 		static uint16_t setting_ratio_flowmeter = setting_ratio_flowmeter_default;        // значение литр/мин
+		uint16_t setting_ratio_flowmeter_old = 0;
 		static uint16_t data_flowmeter = data_flowmeter_default;                          // начальное значение расходомера (0)
 
-
-//		input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
-//		uint16_t count_flowmeter_pulse = 0;     старое название переменной частота генератора (flow)
-//		uint16_t input_pulse_freq = 0;           // частота генератора (flow)
-//		uint16_t old_count_flowmeter_pulse = 0;  старое название переменной
-//		uint16_t input_pulse_freq_old = 0;       // предыдущее значение частоты генератора (flow) для сравнения при проверке условия
+		uint16_t input_pulse_freq = 0;           // частота входного сигнала (в сек) = input_pulse_counter * freq_measure_input_pulse
+		uint16_t input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
+		uint16_t input_pulse_freq_old = 0;       // предыдущее значение частоты генератора (flow) для сравнения при проверке условия
 
 		// начальные установки для отображения на dwin- приборе -------------------------
 			writeHalfWordDWIN(dwin_adress_flowmeter, data_flowmeter);
@@ -348,10 +346,24 @@ void func_4 (){
 /*
 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
+* Проверка чтоб обновить данные на dwin и AD:
+* - нажата кнопка Старт
+* - срабатывание прерывания - flag_flowmeter_tim3_IT
+* - изменение значения входной частоты
+* - изменение setting_ratio_flowmeter пользователем
 */
-	 if ((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != input_pulse_freq)) {
+	 if (((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != input_pulse_freq) && (status_flowmeter)) || (setting_ratio_flowmeter_old != setting_ratio_flowmeter)) {
 		flag_flowmeter_tim3_IT = false;
-		input_pulse_freq_old = input_pulse_freq;
+		setting_ratio_flowmeter_old = setting_ratio_flowmeter;
+		input_pulse_freq = input_pulse_counter * freq_measure_input_pulse;             // частота входного сигнала в Гц
+		input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max частота входного сигнала в Гц
+
+		if (input_pulse_freq >= input_pulse_freq_max) {  // проверка на превышение значения входа ...
+			input_pulse_freq = input_pulse_freq_max;
+		    input_pulse_freq_old = input_pulse_freq;
+		}
+		else input_pulse_freq_old = input_pulse_freq;
+
 //		writeHalfWordDWIN(dwin_adress_flowmeter,(input_pulse_freq * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
 //	      AD9833_SetWaveData(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во импульсов за секунду)
 

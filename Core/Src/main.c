@@ -78,9 +78,9 @@
 /* USER CODE BEGIN PV */
 
 //-----Расходомер --НЕ ТРОГАТЬ !!! -------------------------------------------------------------------------------------
-uint16_t input_pulse_freq_max      = 0;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
-uint16_t input_pulse_freq          = 0;        // new частота генератора (flow). old var - count_flowmeter_pulse
-uint16_t input_pulse_freq_old = 0;        // old var - old_count_flowmeter_pulse
+//uint16_t input_pulse_length_max      = 0;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
+uint16_t input_pulse_counter          = 0;        // счетчи кол-ва импульсов за (1/freq_measure_input_pulse =0.2 сек)
+//uint16_t input_pulse_length_old      = 0;        // old var - old_count_flowmeter_pulse
 //--------------------- Датчик скорости ------------------------------------------------------------------------
 //uint16_t speedmeter_impuls_100metr = 160;        // Параметр датчика скорости - кол-во импульсов на 100 метров
 float max_freq_speedmeter_pulse = 0.0f;               // максимальная частота генератора (или с датчика speed) для скорости 35 км\ч
@@ -182,7 +182,7 @@ int main(void)
 #endif /*DWIN_Tx_ON*/
 //---------------- максимальная частота расходомера или генератора (имитатора расходомера)
 
-	input_pulse_freq_max = (600 * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
+//	input_pulse_freq_max = (600 * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
 
 	//input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
 
@@ -361,11 +361,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	//---------------------------- FLOWMETER ---------------------------------------------------------
 	if (htim == &htim3) // частота 5 Гц (0,2 сек) = задается для расчетов - freq_measure_flowmeter
 			{
-		input_pulse_freq = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
-		if (input_pulse_freq > input_pulse_freq_max / freq_measure_input_pulse) {
-			input_pulse_freq = input_pulse_freq_max / freq_measure_input_pulse;
+		input_pulse_counter = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
+		// кол-во импульсов за (1/freq_measure_input_pulse =0.2 сек)
 
-		}  // ограничение по частоте - не более 400*5 = 2000 Гц
+//		if (input_pulse_freq > input_pulse_freq_max / freq_measure_input_pulse) {
+//			input_pulse_freq = input_pulse_freq_max / freq_measure_input_pulse;
+//		}  // ограничение по частоте - не более 400*5 = 2000 Гц
+
 		HAL_TIM_Base_Stop_IT(&htim3);
 		flag_flowmeter_tim3_IT = true;
        // обнуляем счётчики и рестартуем таймер №3
@@ -374,6 +376,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		HAL_TIM_Base_Start_IT(&htim3);
 	}
 }
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart1) {
 		flag_dwin_tx_IT = true;
