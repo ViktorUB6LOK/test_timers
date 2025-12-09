@@ -11,9 +11,7 @@ extern bool flag_dwin_tx_IT;                  // флаг получения д�
 extern bool flag_flowmeter_tim3_IT;   // флаг сработки таймера 3 по прерыванию (счет EXT imp flowmeter)
 extern bool flag_speedmeter_tim2_IT;  // флаг сработки таймера 2 по прерыванию (счет EXT имп speedmeter)
 
-//extern uint16_t input_pulse_freq_max ;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
 extern uint16_t input_pulse_counter;            // счетчик кол-ва входных импульсов за (1/freq_measure_input_pulse =0.2 сек)
-//extern uint16_t input_pulse_length_old ;        // old var - old_count_flowmeter_pulse
 //---------------------------------------------------------------------------------------------------------------
 extern struct readDataDWIN_P readDataDWIN;
 
@@ -298,7 +296,7 @@ void func_4 (){
 		uint16_t adress_parsing = 0;
 		uint16_t data_parsing = 0;
 		static uint16_t setting_ratio_flowmeter = setting_ratio_flowmeter_default;        // значение литр/мин
-		uint16_t setting_ratio_flowmeter_old = 0;
+		uint16_t setting_ratio_flowmeter_old = 0;  // предыдущее значение параметра расходомера для сравнения при проверке условия
 		static uint16_t data_flowmeter = data_flowmeter_default;                          // начальное значение расходомера (0)
 
 		uint16_t input_pulse_freq = 0;           // частота входного сигнала (в сек) = input_pulse_counter * freq_measure_input_pulse
@@ -326,13 +324,12 @@ void func_4 (){
 				     break;
 		          case (dwin_adress_button_flowmeter_start):  // нажали Старт
 		          				status_flowmeter = (bool) data_parsing;
-//		          				if (status_flowmeter)
-//		          					send_data_to_ad9833(data_flowmeter, setting_ratio_flowmeter);
-//		          				else
-//		          					power_off_ad9833(); // выключить AD
 		             break;
 		          case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
 		          		if (data_parsing == dwin_data_app_change_menu) {
+		          			HAL_TIM_Base_Stop_IT(&htim3);
+		          			__HAL_TIM_SET_COUNTER(&htim3, 0x0000);  // нужно ли это делать ?
+		          		    __HAL_TIM_SET_COUNTER(&htim4, 0x0000);  // нужно ли это делать ?
 		          			power_off_ad9833();
 		          			writeWordDWIN(dwin_adress_button_flowmeter_start, 0);
 		          			goToPageDWIN(page_start);
@@ -358,18 +355,18 @@ void func_4 (){
 		input_pulse_freq = input_pulse_counter * freq_measure_input_pulse;             // частота входного сигнала в Гц
 		input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max частота входного сигнала в Гц
 
-		if (input_pulse_freq >= input_pulse_freq_max) {  // проверка на превышение значения входа ...
+		if (input_pulse_freq >= input_pulse_freq_max) {  // проверка на превышение значения входной чвстоты ...
 			input_pulse_freq = input_pulse_freq_max;
 		    input_pulse_freq_old = input_pulse_freq;
 		}
 		else input_pulse_freq_old = input_pulse_freq;
+	// Формула для расчета вывода значения расхода (л/мин) - (input_pulse_freq * 60) / (setting_ratio_flowmeter)
 
-//		writeHalfWordDWIN(dwin_adress_flowmeter,(input_pulse_freq * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
-//	      AD9833_SetWaveData(count_flowmeter_pulse * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во импульсов за секунду)
-
-					}
-
-    } /*while*/
+		writeHalfWordDWIN(dwin_adress_show_freq_input, input_pulse_freq);                                   // вывод на dwin частоты входного сигнала
+		writeHalfWordDWIN(dwin_adress_flowmeter,((input_pulse_freq * 60) / (setting_ratio_flowmeter)));     // расход л/мин
+        AD9833_SetWaveData(input_pulse_freq, 0);                              // установка измеренной частоты (кол-во импульсов за секунду)
+	}
+  } /*while*/
 } /*end void*/
 
 

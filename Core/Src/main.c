@@ -78,9 +78,9 @@
 /* USER CODE BEGIN PV */
 
 //-----Расходомер --НЕ ТРОГАТЬ !!! -------------------------------------------------------------------------------------
-//uint16_t input_pulse_length_max      = 0;        // максимальная частота генератора (flow). old var - max_flowmeter_pulse
 uint16_t input_pulse_counter          = 0;        // счетчи кол-ва импульсов за (1/freq_measure_input_pulse =0.2 сек)
-//uint16_t input_pulse_length_old      = 0;        // old var - old_count_flowmeter_pulse
+
+
 //--------------------- Датчик скорости ------------------------------------------------------------------------
 //uint16_t speedmeter_impuls_100metr = 160;        // Параметр датчика скорости - кол-во импульсов на 100 метров
 float max_freq_speedmeter_pulse = 0.0f;               // максимальная частота генератора (или с датчика speed) для скорости 35 км\ч
@@ -180,11 +180,6 @@ int main(void)
 	 */
 	dwinUartDmaInit();
 #endif /*DWIN_Tx_ON*/
-//---------------- максимальная частота расходомера или генератора (имитатора расходомера)
-
-//	input_pulse_freq_max = (600 * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
-
-	//input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
 
 //------------- максимальная частота датчика скорости или генератора (имитатора д.скорости)
 	max_freq_speedmeter_pulse = 35 / (3.6 * speedmeter_impuls_100meter / 100 );
@@ -363,11 +358,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 			{
 		input_pulse_counter = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
 		// кол-во импульсов за (1/freq_measure_input_pulse =0.2 сек)
-
-//		if (input_pulse_freq > input_pulse_freq_max / freq_measure_input_pulse) {
-//			input_pulse_freq = input_pulse_freq_max / freq_measure_input_pulse;
-//		}  // ограничение по частоте - не более 400*5 = 2000 Гц
-
 		HAL_TIM_Base_Stop_IT(&htim3);
 		flag_flowmeter_tim3_IT = true;
        // обнуляем счётчики и рестартуем таймер №3
