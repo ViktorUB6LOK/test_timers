@@ -53,9 +53,13 @@ void DWIN_Select_mode() {
 			goToPageDWIN(page_flowmeter_speedmeter); // переключение на страницу режима 3
 		    func_3();
 			break;
-		case (dwin_data_app_IO_flowmeter): // режим 3 (генератор flowmeter + speedmeter)
-			goToPageDWIN(page_IO_flowmeter); // переключение на страницу режима 3
+		case (dwin_data_app_IO_flowmeter): // режим 4 (IO flowmeter)
+			goToPageDWIN(page_IO_flowmeter); // переключение на страницу режима 4
 			func_4();
+			break;
+		case (dwin_data_app_IO_speedmeter): // режим 5 (IO speedmeter)
+			goToPageDWIN(page_IO_speedmeter); // переключение на страницу режима 5
+			//func_4();
 			break;
 		default:
 			break;
@@ -348,8 +352,13 @@ void func_4 (){
 * - срабатывание прерывания - flag_flowmeter_tim3_IT
 * - изменение значения входной частоты
 * - изменение setting_ratio_flowmeter пользователем
+*
+* - старт -стоп - останавливает счет но не сбрасывает прибор в 0
+* на малых входных частотах изменеие в 1Гц - колебания отображаемой частоты +-5Гц (за счет x5 в расчетах)
+*
+*
 */
-	 if (((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != input_pulse_freq) && (status_flowmeter)) || (setting_ratio_flowmeter_old != setting_ratio_flowmeter)) {
+	 if (((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != input_pulse_freq)) || ((status_flowmeter)) || (setting_ratio_flowmeter_old != setting_ratio_flowmeter)) {
 		flag_flowmeter_tim3_IT = false;
 		setting_ratio_flowmeter_old = setting_ratio_flowmeter;
 		input_pulse_freq = input_pulse_counter * freq_measure_input_pulse;             // частота входного сигнала в Гц
@@ -362,9 +371,11 @@ void func_4 (){
 		else input_pulse_freq_old = input_pulse_freq;
 	// Формула для расчета вывода значения расхода (л/мин) - (input_pulse_freq * 60) / (setting_ratio_flowmeter)
 
-		writeHalfWordDWIN(dwin_adress_show_freq_input, input_pulse_freq);                                   // вывод на dwin частоты входного сигнала
+		writeHalfWordDWIN(dwin_adress_show_freq_input_1, input_pulse_freq);   // вывод на dwin (0x6000) частоты входного сигнала
+		HAL_Delay(20);
 		writeHalfWordDWIN(dwin_adress_flowmeter,((input_pulse_freq * 60) / (setting_ratio_flowmeter)));     // расход л/мин
-        AD9833_SetWaveData(input_pulse_freq, 0);                              // установка измеренной частоты (кол-во импульсов за секунду)
+		HAL_Delay(20);
+      // до отладки  AD9833_SetWaveData(input_pulse_freq, 0);                              // установка измеренной частоты (кол-во импульсов за секунду)
 	}
   } /*while*/
 } /*end void*/

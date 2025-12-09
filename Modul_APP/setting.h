@@ -38,7 +38,9 @@
 #define dwin_data_app_IO_flowmeter_speedmeter 0x0006  // режим совмещения IO расходомера и спидометра
 
 #define freq_measure_input_pulse 5     // частота измерения входного сигнала 1 (flow) - настройка таймера 3 - 0,2сек
-#define dwin_adress_show_freq_input 0x6000 // адрес переменной для вывода частоты входного сигнала flow
+#define dwin_adress_show_freq_input_1 0x6000 // адрес переменной для вывода частоты входного сигнала flow
+#define dwin_adress_show_freq_input_2 0x6005 // адрес переменной для вывода частоты входного сигнала speed
+
 
 /* setting_ratio_flowmeter - параметр расходомера - кол-во имп/литр (задается пользователем)
 *  input_pulse_counter  - счетчик кол-ва входных импульсов, колбэк из main.c
@@ -50,7 +52,7 @@
 // --------------------------------------------------------------------
 enum dwin_page {
 	page_start = 1, page_flowmeter, page_speedmeter, page_flowmeter_speedmeter,
-	page_IO_flowmeter, page_IO_speedmeter, page_IO_flowmeter_speedmeter
+	page_IO_flowmeter = 10, page_IO_speedmeter = 12, page_IO_flowmeter_speedmeter
 };
 
 #endif /* SETTING_H_ */
