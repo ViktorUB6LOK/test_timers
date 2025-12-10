@@ -195,37 +195,6 @@ int main(void)
 
 		DWIN_Select_mode();
 
-
-
-		#ifdef EXTERN_FLOWMETER_ON              //#if defined TIMER_ON || defined AD9833_ON
-		/*
-		 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
-		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
-		 */
-		if ((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != count_flowmeter_pulse)) {
-			flag_flowmeter_tim3_IT = false;
-			input_pulse_freq_old = count_flowmeter_pulse;
-			writeHalfWordDWIN(dwin_adress_flowmeter,
-					(input_pulse_freq * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
-    #ifdef Modul_1_ON
-			AD9833_SetWaveData(input_pulse_freq * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
-    #endif /*Modul_1_ON*/
-    #ifdef Modul_2_ON  // Только для проверки !!! Modul_2 - для SPEED !
-			AD9833_SetWaveData_2(input_pulse_freq * freq_measure_flowmeter, 0); // установка измеренной частоты (кол-во ипмульсов за секунду)
-    #endif /*Modul_2_ON*/
-
-			// отправка данных на LCD
-#ifdef PRINT_TO_LCD_ON
-			char str[50] = { 0, };
-			sprintf(str, "FREQ: %u Hz -- Flowmeter: %u l/min \n",
-					input_pulse_freq * freq_measure_flowmeter,
-					(count_flowmeter_pulse * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
-			printedtxt(str);
-			HAL_GPIO_TogglePin(Out_PA7_GPIO_Port, Out_PA7_Pin);
-#endif /*PRINT_TO_LCD_ON*/
-		}
-#endif /*EXTERN_FLOWMETER_ON*/
-
 //#ifdef DWIN_Tx_ON
 //		if (flag_dwin_tx_IT) {
 //			flag_dwin_tx_IT = false;
@@ -352,8 +321,8 @@ void SystemClock_Config(void)
 
 //		 memset (strX, 0, sizeof (strX)); // образец
 
+//---------------------------- FLOWMETER ---------------------------------------------------------
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	//---------------------------- FLOWMETER ---------------------------------------------------------
 	if (htim == &htim3) // частота 5 Гц (0,2 сек) = задается для расчетов - freq_measure_flowmeter
 			{
 		input_pulse_counter = __HAL_TIM_GET_COUNTER(&htim4); // значение в счётчике таймера №4 (за 0,2сек)
@@ -366,6 +335,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		HAL_TIM_Base_Start_IT(&htim3);
 	}
 }
+// ------------------------------------------------------------------------------------------------
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart1) {

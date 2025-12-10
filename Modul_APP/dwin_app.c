@@ -297,6 +297,7 @@ void func_4 (){
 		HAL_TIM_Base_Start(&htim4);
 		bool flag_func_4 = false;           // для выхода из функции - нажата кнопка выбора режима работы
 		bool status_flowmeter = false;      // Кнопка Старт - Стоп расходомера
+		bool status_flowmeter_old = false;      // Кнопка Старт - Стоп расходомера
 		uint16_t adress_parsing = 0;
 		uint16_t data_parsing = 0;
 		static uint16_t setting_ratio_flowmeter = setting_ratio_flowmeter_default;        // значение литр/мин
@@ -348,24 +349,21 @@ void func_4 (){
 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 * Проверка чтоб обновить данные на dwin и AD:
-* - нажата кнопка Старт - зачем??????????
+* - нажата кнопка Старт - для вкл и выкл показаний dwin
 * - срабатывание прерывания - flag_flowmeter_tim3_IT
 * - изменение значения входной частоты
 * - изменение setting_ratio_flowmeter пользователем
 *
-* - старт -стоп - останавливает счет но не сбрасывает прибор в 0 - исправил - проверить!
 * на малых входных частотах изменение на 1 (за 0,2сек) - колебания отображаемой частоты +-5Гц (за счет x5 в расчетах)
-*
-* (input_pulse_counter_old != input_pulse_counter)- так правильнее будет? вместо freq
-* status_flower - убрать из условия? - нужно только для отображения ...
 */
 	 if (((flag_flowmeter_tim3_IT) &&
 //      	 (input_pulse_freq_old != input_pulse_freq))
 			 (input_pulse_counter_old != input_pulse_counter)) ||
-//			 ((status_flowmeter)) ||
+			 ((status_flowmeter_old != status_flowmeter)) ||
 			 (setting_ratio_flowmeter_old != setting_ratio_flowmeter)) {
 		flag_flowmeter_tim3_IT = false;
 		setting_ratio_flowmeter_old = setting_ratio_flowmeter;
+		status_flowmeter_old = status_flowmeter;
 		input_pulse_freq = input_pulse_counter * freq_measure_input_pulse;             // частота входного сигнала в Гц
 		input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max частота входного сигнала в Гц
 
@@ -384,14 +382,15 @@ void func_4 (){
 		HAL_Delay(20);
 
 		if (status_flowmeter){ // отображение если нажата кнопка Старт
-		writeHalfWordDWIN(dwin_adress_flowmeter,((input_pulse_freq * 60) / (setting_ratio_flowmeter)));     // расход л/мин
+			uint16_t freq_for_send_dwin = (input_pulse_freq * 60) / (setting_ratio_flowmeter); // расчет для отправки в dwin
+		writeHalfWordDWIN(dwin_adress_flowmeter, freq_for_send_dwin);     // расход л/мин
 		HAL_Delay(20);
-//откл до отладки  AD9833_SetWaveData(input_pulse_freq, 0);      // установка измеренной частоты (кол-во импульсов за секунду)
+        AD9833_SetWaveData(input_pulse_freq, 0);      // установка измеренной частоты (кол-во импульсов за секунду)
 		}
 		else {
 			writeHalfWordDWIN(dwin_adress_flowmeter,0);     // вкл Стоп - расход 0 л/мин (отображение - 0 (выкл))
 			HAL_Delay(20);
-//откл до отладки  AD9833_SetWaveData(0, 0);                // установка AD в 0 (выкл)
+            AD9833_SetWaveData(0, 0);                // установка AD в 0 (выкл)
 			}
 	}
   } /*while*/
