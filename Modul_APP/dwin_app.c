@@ -305,8 +305,8 @@ void func_4 (){
 
 		uint16_t input_pulse_freq = 0;           // частота входного сигнала (в сек) = input_pulse_counter * freq_measure_input_pulse
 		uint16_t input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
-		uint16_t input_pulse_freq_old = 0;       // предыдущее значение частоты генератора (flow) для сравнения при проверке условия
-
+	//	uint16_t input_pulse_freq_old = 0;       // предыдущее значение частоты генератора (flow) для сравнения при проверке условия
+		uint16_t input_pulse_counter_old = 0;       // предыдущее значение счетчика (flow) для сравнения при проверке условия
 		// начальные установки для отображения на dwin- приборе -------------------------
 			writeHalfWordDWIN(dwin_adress_flowmeter, data_flowmeter);
 			HAL_Delay(10);
@@ -348,34 +348,51 @@ void func_4 (){
 * Проверка срабатывания прерывания по таймеру 3 и изменению переменной счетчика таймера 4
 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 * Проверка чтоб обновить данные на dwin и AD:
-* - нажата кнопка Старт
+* - нажата кнопка Старт - зачем??????????
 * - срабатывание прерывания - flag_flowmeter_tim3_IT
 * - изменение значения входной частоты
 * - изменение setting_ratio_flowmeter пользователем
 *
-* - старт -стоп - останавливает счет но не сбрасывает прибор в 0
-* на малых входных частотах изменеие в 1Гц - колебания отображаемой частоты +-5Гц (за счет x5 в расчетах)
+* - старт -стоп - останавливает счет но не сбрасывает прибор в 0 - исправил - проверить!
+* на малых входных частотах изменение на 1 (за 0,2сек) - колебания отображаемой частоты +-5Гц (за счет x5 в расчетах)
 *
-*
+* (input_pulse_counter_old != input_pulse_counter)- так правильнее будет? вместо freq
+* status_flower - убрать из условия? - нужно только для отображения ...
 */
-	 if (((flag_flowmeter_tim3_IT) && (input_pulse_freq_old != input_pulse_freq)) || ((status_flowmeter)) || (setting_ratio_flowmeter_old != setting_ratio_flowmeter)) {
+	 if (((flag_flowmeter_tim3_IT) &&
+//      	 (input_pulse_freq_old != input_pulse_freq))
+			 (input_pulse_counter_old != input_pulse_counter)) ||
+//			 ((status_flowmeter)) ||
+			 (setting_ratio_flowmeter_old != setting_ratio_flowmeter)) {
 		flag_flowmeter_tim3_IT = false;
 		setting_ratio_flowmeter_old = setting_ratio_flowmeter;
 		input_pulse_freq = input_pulse_counter * freq_measure_input_pulse;             // частота входного сигнала в Гц
 		input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max частота входного сигнала в Гц
 
-		if (input_pulse_freq >= input_pulse_freq_max) {  // проверка на превышение значения входной чвстоты ...
+		if (input_pulse_freq >= input_pulse_freq_max) {  // проверка на превышение значения входной частоты ...
 			input_pulse_freq = input_pulse_freq_max;
-		    input_pulse_freq_old = input_pulse_freq;
+//		    input_pulse_freq_old = input_pulse_freq;
+			input_pulse_counter_old = input_pulse_counter;
 		}
-		else input_pulse_freq_old = input_pulse_freq;
+		else
+//			input_pulse_freq_old = input_pulse_freq;
+			input_pulse_counter_old = input_pulse_counter;
+
 	// Формула для расчета вывода значения расхода (л/мин) - (input_pulse_freq * 60) / (setting_ratio_flowmeter)
 
 		writeHalfWordDWIN(dwin_adress_show_freq_input_1, input_pulse_freq);   // вывод на dwin (0x6000) частоты входного сигнала
 		HAL_Delay(20);
+
+		if (status_flowmeter){ // отображение если нажата кнопка Старт
 		writeHalfWordDWIN(dwin_adress_flowmeter,((input_pulse_freq * 60) / (setting_ratio_flowmeter)));     // расход л/мин
 		HAL_Delay(20);
-      // до отладки  AD9833_SetWaveData(input_pulse_freq, 0);                              // установка измеренной частоты (кол-во импульсов за секунду)
+//откл до отладки  AD9833_SetWaveData(input_pulse_freq, 0);      // установка измеренной частоты (кол-во импульсов за секунду)
+		}
+		else {
+			writeHalfWordDWIN(dwin_adress_flowmeter,0);     // вкл Стоп - расход 0 л/мин (отображение - 0 (выкл))
+			HAL_Delay(20);
+//откл до отладки  AD9833_SetWaveData(0, 0);                // установка AD в 0 (выкл)
+			}
 	}
   } /*while*/
 } /*end void*/
