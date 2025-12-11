@@ -11,6 +11,7 @@
 #include "main.h"
 #include "tim.h"
 #include "dwin.h"
+#include <stdlib.h>
 #include "ad9833_app.h"
 #include "setting.h"
 
@@ -27,5 +28,6 @@ void func_1 (void);            // flowmeter
 void func_2 (void);            // speedmeter
 void func_3 (void);            // flowmeter_speedmeter
 void func_4 (void);            // IO flowmeter
+void func_5 (void);            // IO speedmeter
 
 #endif /* DWIN_APP_H_ */

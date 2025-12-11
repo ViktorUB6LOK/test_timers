@@ -45,12 +45,13 @@
 /* setting_ratio_flowmeter - параметр расходомера - кол-во имп/литр (задается пользователем)
 *  input_pulse_counter  - счетчик кол-ва входных импульсов, колбэк из main.c
 *  input_pulse_freq      = input_pulse_counter * freq_measure_input_pulse - частота входных импульсов, Гц
+*  freq_measure_input_pulse - частота измерений, задается в define
 *  input_pulse_freq_max  = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота входных импульсов
 *
 */
 
 // --------------------------------------------------------------------
-enum dwin_page {
+enum dwin_page { // нумерация переключаемых страниц в dwin
 	page_start = 1, page_flowmeter, page_speedmeter, page_flowmeter_speedmeter,
 	page_IO_flowmeter = 10, page_IO_speedmeter = 12, page_IO_flowmeter_speedmeter
 };

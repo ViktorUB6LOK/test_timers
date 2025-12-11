@@ -12,6 +12,7 @@ extern bool flag_flowmeter_tim3_IT;   // флаг сработки таймер�
 extern bool flag_speedmeter_tim2_IT;  // флаг сработки таймера 2 по прерыванию (счет EXT имп speedmeter)
 
 extern uint16_t input_pulse_counter;            // счетчик кол-ва входных импульсов за (1/freq_measure_input_pulse =0.2 сек)
+extern uint32_t duration_input_pulse_mks;       // длительность входных импульсов (для малых частот - спидометр)
 //---------------------------------------------------------------------------------------------------------------
 extern struct readDataDWIN_P readDataDWIN;
 
@@ -59,7 +60,7 @@ void DWIN_Select_mode() {
 			break;
 		case (dwin_data_app_IO_speedmeter): // режим 5 (IO speedmeter)
 			goToPageDWIN(page_IO_speedmeter); // переключение на страницу режима 5
-			//func_4();
+			func_5();
 			break;
 		default:
 			break;
@@ -67,7 +68,7 @@ void DWIN_Select_mode() {
 	}
 }
 
-void func_1() {
+void func_1() { // out pulse flowmeter
 	bool flag_func_1 = false;
 	bool status_flowmeter = false;
 	uint16_t adress_parsing = 0;
@@ -134,7 +135,7 @@ void func_1() {
 	}
 }
 
-void func_2() {
+void func_2() { // out pulse speedmeter
 	bool flag_func_2 = false;
 	bool status_speedmeter = false;
 	uint16_t adress_parsing = 0;
@@ -197,7 +198,7 @@ void func_2() {
 	}
 }
 
-void func_3 (){
+void func_3 (){ // out pulse flowmeter & speedmeter
 	    bool flag_func_3 = false;
 		bool status_flowmeter = false;
 	    bool status_speedmeter = false;
@@ -292,7 +293,7 @@ void func_3 (){
 
 }
 
-void func_4 (){
+void func_4 (){ // IO pulse flowmeter
 	    HAL_TIM_Base_Start_IT(&htim3);
 		HAL_TIM_Base_Start(&htim4);
 		bool flag_func_4 = false;           // для выхода из функции - нажата кнопка выбора режима работы
@@ -302,11 +303,10 @@ void func_4 (){
 		uint16_t data_parsing = 0;
 		static uint16_t setting_ratio_flowmeter = setting_ratio_flowmeter_default;        // значение литр/мин
 		uint16_t setting_ratio_flowmeter_old = 0;  // предыдущее значение параметра расходомера для сравнения при проверке условия
-		static uint16_t data_flowmeter = data_flowmeter_default;                          // начальное значение расходомера (0)
+		static uint16_t data_flowmeter = data_flowmeter_default;           // начальное значение расходомера (0)
 
 		uint16_t input_pulse_freq = 0;           // частота входного сигнала (в сек) = input_pulse_counter * freq_measure_input_pulse
 		uint16_t input_pulse_freq_max = (setting_ratio_flowmeter * data_flowmeter_max) / 60;    // max входная частота c расходомера (с генератора)
-	//	uint16_t input_pulse_freq_old = 0;       // предыдущее значение частоты генератора (flow) для сравнения при проверке условия
 		uint16_t input_pulse_counter_old = 0;       // предыдущее значение счетчика (flow) для сравнения при проверке условия
 		// начальные установки для отображения на dwin- приборе -------------------------
 			writeHalfWordDWIN(dwin_adress_flowmeter, data_flowmeter);
@@ -394,6 +394,98 @@ void func_4 (){
 			}
 	}
   } /*while*/
-} /*end void*/
+} /*end func_4*/
 
+void func_5 (){ // IO pulse speedmeter
+	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1); // запуск 2-х каналов таймера в режиме сравнения
+	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
+	bool flag_func_5 = false;           // для выхода из функции - нажата кнопка выбора режима работы
+	bool status_speedmeter = false;          // Кнопка Старт - Стоп спидометра
+	bool status_speedmeter_old = false;      // Кнопка Старт - Стоп спидометра
+	uint16_t adress_parsing = 0;
+	uint16_t data_parsing = 0;
+	float input_pulse_freq = .0f;
 
+	static  uint16_t setting_ratio_speedmeter = setting_ratio_speedmeter_default;  // коэф. имп/100м
+	uint16_t setting_ratio_speedmeter_old = 0;
+    uint16_t input_pulse_freq_max = data_speedmeter_max / (3.6 * setting_ratio_speedmeter / 100);
+//	max_freq_speedmeter_pulse = 35 / (3.6 * speedmeter_impuls_100meter / 100 ); - ранее было ...
+//    input_pulse_freq_max = data_speedmeter_max / (3.6 * setting_ratio_speedmeter / 100); - сейчас так
+    static uint16_t data_speedmeter = data_speedmeter_default;
+
+    uint32_t duration_input_pulse_mks_old = 0;
+
+// ---- начальные установки для отображения на dwin- приборе -------------------------
+		writeHalfWordDWIN(dwin_adress_speedmeter, data_speedmeter);
+		HAL_Delay(10);
+		writeHalfWordDWIN(dwin_adress_speedmeter_setting, setting_ratio_speedmeter);
+		HAL_Delay(10);
+// -----------------------------------------------------------------------------------
+		while (!flag_func_5) {
+			if (flag_dwin_tx_IT) {  // сработало прерывание - UART буфер заполнен
+									flag_dwin_tx_IT = false;
+									parsingDWIN();
+									adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
+											| readDataDWIN.parsingDataDWIN.data[1];
+									data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
+											| readDataDWIN.parsingDataDWIN.data[4];
+						  switch (adress_parsing) {
+					          case (dwin_adress_speedmeter_setting): // если нажали на выбор коэфф. имп/100м - установка
+									setting_ratio_speedmeter = data_parsing;
+							     break;
+					          case (dwin_adress_button_speedmeter_start):  // нажали Старт
+					          				status_speedmeter = (bool) data_parsing;
+					             break;
+					          case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
+					          		if (data_parsing == dwin_data_app_change_menu) {
+					          			power_off_ad9833_2();   // выкл AD
+					          			writeWordDWIN(dwin_adress_button_speedmeter_start, 0);
+					          			goToPageDWIN(page_start);
+					          		    flag_func_5 = true;
+					          		}
+					             break;
+					          default:
+					             break;
+						  } /*switch*/
+				 } /*if*/
+
+			/*
+			 * Условия срабатывавния:
+			 * - прерывание && изменение длительности импульса (оба условия одновременно)
+			 * - изменение коэф. имп\100м
+			 * - статус нажатия кнопки Старт-Стоп
+			 */
+		if (((flag_speedmeter_tim2_IT) && ( abs (duration_input_pulse_mks_old - duration_input_pulse_mks) > 100)) ||
+				(setting_ratio_speedmeter_old != setting_ratio_speedmeter) ||
+				(status_speedmeter_old != status_speedmeter))
+		{
+			flag_speedmeter_tim2_IT = false;
+			input_pulse_freq = (float) 1000000/duration_input_pulse_mks;           // вычисляем частоту входного импульса
+
+			if (input_pulse_freq >= input_pulse_freq_max){    // проверка на превышение max частоты
+				input_pulse_freq = input_pulse_freq_max;
+				duration_input_pulse_mks_old = duration_input_pulse_mks;
+			} else 	duration_input_pulse_mks_old = duration_input_pulse_mks;
+// возможно придется изменить формат чисел для отображения на dwin - малая частота
+			writeHalfWordDWIN(dwin_adress_show_freq_input_2, (uint16_t) input_pulse_freq); //  отображение входной частоты на dwin
+			HAL_Delay(20);
+
+				if (status_speedmeter){        // отображение если нажата кнопка Старт
+//					uint16_t freq_for_send_dwin = (input_pulse_freq * 60) / (setting_ratio_flowmeter); // расчет для отправки в dwin
+//					writeHalfWordDWIN(dwin_adress_speedmeter, freq_for_send_dwin);     // скорость на dwin
+
+					uint16_t speed_for_send_dwin = (uint16_t) 10* (input_pulse_freq * (setting_ratio_speedmeter / 100)*3.6); // *10 для отображения на dwin
+					writeHalfWordDWIN(dwin_adress_show_freq_input_2, speed_for_send_dwin); //  отображение входной частоты на DWIN
+					HAL_Delay(20);
+		            AD9833_SetWaveData_2(input_pulse_freq, 0);      // установка измеренной частоты (кол-во импульсов за секунду)
+				}
+				else {
+					writeHalfWordDWIN(dwin_adress_speedmeter,0);     // вкл Стоп - скорость =0 -отображение  (выкл)
+					HAL_Delay(20);
+		            AD9833_SetWaveData_2(0, 0);                // установка AD в 0 (выкл)
+					}
+
+		  } /*if*/
+
+		} /*while*/
+} /*end func_5*/

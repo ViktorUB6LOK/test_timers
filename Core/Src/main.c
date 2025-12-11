@@ -79,14 +79,14 @@
 
 //-----Расходомер --НЕ ТРОГАТЬ !!! -------------------------------------------------------------------------------------
 uint16_t input_pulse_counter          = 0;        // счетчи кол-ва импульсов за (1/freq_measure_input_pulse =0.2 сек)
-
+uint32_t duration_input_pulse_mks = 0;            // длительность входного импульса в мкс (с датчика скорости (генератора))
 
 //--------------------- Датчик скорости ------------------------------------------------------------------------
 //uint16_t speedmeter_impuls_100metr = 160;        // Параметр датчика скорости - кол-во импульсов на 100 метров
-float max_freq_speedmeter_pulse = 0.0f;               // максимальная частота генератора (или с датчика speed) для скорости 35 км\ч
-float freq_speedmeter_pulse = 0.0f;                // частота генератора (speed)
-uint32_t duration_pulse_speedmeter_mks = 0;        // длительность импульса с датчика скорости (генератора) в мкс
-uint32_t old_duration_pulse_speedmeter_mks = 0;    // прежняя длительность импульса с датчика скорости (генератора) в мкс
+//float max_freq_speedmeter_pulse = 0.0f;               // максимальная частота генератора (или с датчика speed) для скорости 35 км\ч
+//float freq_speedmeter_pulse = 0.0f;                // частота генератора (speed)
+//uint32_t duration_pulse_speedmeter_mks = 0;        // длительность импульса с датчика скорости (генератора) в мкс
+//uint32_t old_duration_pulse_speedmeter_mks = 0;    // прежняя длительность импульса с датчика скорости (генератора) в мкс
 float speed_from_pulse = 0.0f;                     // вычисленная скорость из длительности импульса//uint8_t freq_measure_speedmeter = 5;             // Частота измерений speed (в секунду = Гц)
 //---------------------------------------------------------------------------------------------------------------
 
@@ -161,15 +161,11 @@ int main(void)
 	INIT_AD9833 ();
 
 // ---------------------------------------------------------------------------------------
-#ifdef EXTERN_FLOWMETER_ON
-	HAL_TIM_Base_Start_IT(&htim3);
-	HAL_TIM_Base_Start(&htim4);
-#endif  /*EXTERN_FLOWMETER_ON*/
 
-#ifdef EXTERN_SPEEDMETER_ON
-	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
-#endif  /*EXTERN_SPEEDMETER_ON*/
+//#ifdef EXTERN_SPEEDMETER_ON
+//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
+//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
+//#endif  /*EXTERN_SPEEDMETER_ON*/
 
 
 #ifdef DWIN_Tx_ON
@@ -182,7 +178,7 @@ int main(void)
 #endif /*DWIN_Tx_ON*/
 
 //------------- максимальная частота датчика скорости или генератора (имитатора д.скорости)
-	max_freq_speedmeter_pulse = 35 / (3.6 * speedmeter_impuls_100meter / 100 );
+//	max_freq_speedmeter_pulse = 35 / (3.6 * speedmeter_impuls_100meter / 100 );
 // !!!!!!!! - очень малая дискретность изменения частоты !
 
   /* USER CODE END 2 */
@@ -238,7 +234,7 @@ int main(void)
 		 * Проверка срабатывания прерывания по таймеру 2 и изменению переменной длительности импульса(?!) см ниже в задаче
 		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
 		 */
-		if ((flag_speedmeter_tim2_IT) && ( abs (old_duration_pulse_speedmeter_mks - duration_pulse_speedmeter_mks) > 100))
+		if ((flag_speedmeter_tim2_IT) && ( abs (!!!!!old_duration_pulse_speedmeter_mks - duration_pulse_speedmeter_mks) > 100))
 		{
 			flag_speedmeter_tim2_IT = false;
 			old_duration_pulse_speedmeter_mks = duration_pulse_speedmeter_mks;
@@ -349,9 +345,8 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
                         __HAL_TIM_SET_COUNTER(&htim2, 0x0000);     // обнуление счётчика
                 else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) // RISING с LOW на HIGH
                 {
-                 duration_pulse_speedmeter_mks = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2); // чтение значения в регистре захвата/сравнения
+                 duration_input_pulse_mks = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2); // чтение значения в регистре захвата/сравнения
                  flag_speedmeter_tim2_IT = true;
-                 HAL_GPIO_TogglePin(Out_PA6_GPIO_Port, Out_PA6_Pin);  // тест
                 }
         }
 }
