@@ -40,6 +40,7 @@
 #define freq_measure_input_pulse 5     // частота измерения входного сигнала 1 (flow) - настройка таймера 3 - 0,2сек
 #define dwin_adress_show_freq_input_1 0x6000 // адрес переменной для вывода частоты входного сигнала flow
 #define dwin_adress_show_freq_input_2 0x6005 // адрес переменной для вывода частоты входного сигнала speed
+#define dwin_adress_show_status_input 0x5005 // адрес сообщения о статусе входного сигнала
 
 
 /* setting_ratio_flowmeter - параметр расходомера - кол-во имп/литр (задается пользователем)

@@ -8,11 +8,11 @@
  * (пошёл отсчёт секунды), а он в свою очередь «толкает» таймер №4, который
  * начинает тактироваться от измеряемой частоты и складывать поступающие импульсы
  * в свой счётчик. Таким образом у нас получается следующее:
- * оба таймера, №3 (отмеряющий секундный интервал) и №4 (считающий импульсы)
- * стартанут чётко одновременно, а когда таймер №3 отмерит секунду и остановится,
+ * оба таймера, №3 (отмеряющий секундный интервал? - 0,2 у нас) и №4 (считающий импульсы)
+ * стартанут чётко одновременно, а когда таймер №3 отмерит секунду (?) 0,2 сек и остановится,
  * то и таймер №4 тоже остановится (перестанет считать импульсы) — в счётчике
  * таймера №4 будет лежать количество импульсов входящей частоты полученные
- * за одну секунду со входа TIM4_ETR.
+ * за одну секунду (?) 0,2 сек со входа TIM4_ETR.
  * Для плавности - таймер 3 работает с частотой 5 Гц
  *
  * Этап 2. (Датчик скорости)
@@ -23,7 +23,6 @@
  *
  * Скорость в км/ч = Частота импульсов с датчика * (Кол-во ипм на 100м / 100) * 3.6; (3.6 коэф перевода м/с в км/час)
  *
- * TODO Общая задача - проверить сброс показаний приборов расходомера и д.скорости на 0 при пропадании внешнего сигнала!
  */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
@@ -52,19 +51,8 @@
 /* USER CODE BEGIN PD */
 
 //------------------- ВКЛ - ВЫКЛ -------------------------------------------------------------------------------
-//#define EXTERN_FLOWMETER_ON             // ВКЛ Внешний источник flowmeter (режим работы - сниффер)
-
-//#define EXTERN_SPEEDMETER_ON            // ВКЛ Внешний источник speedmeter (режим работы - сниффер)
-
-#define DWIN_Tx_ON                      // ВКЛ Прием данных от DWIN (источник - DWIN)
-
 #define PRINT_TO_LCD_ON                 // ВКЛ инициализация LCD и печать данных на нем
 //---------------------------------------------------------------------------------------------------------------
-
-#define flowmeter_impuls_litr 600       // Параметр расходомера - кол-во импульсов на литр
-#define freq_measure_flowmeter 5        // Частота измерений flow (в секунду = Гц) (настройка таймера 3)
-
-#define speedmeter_impuls_100meter 160       // Параметр датчика скорости - кол-во импульсов на 100 метров
 
 /* USER CODE END PD */
 
@@ -77,31 +65,17 @@
 
 /* USER CODE BEGIN PV */
 
-//-----Расходомер --НЕ ТРОГАТЬ !!! -------------------------------------------------------------------------------------
+//-------НЕ ТРОГАТЬ !!! Глобальные переменные------------------------------------------------------------------
 uint16_t input_pulse_counter          = 0;        // счетчи кол-ва импульсов за (1/freq_measure_input_pulse =0.2 сек)
 uint32_t duration_input_pulse_mks = 0;            // длительность входного импульса в мкс (с датчика скорости (генератора))
-
-//--------------------- Датчик скорости ------------------------------------------------------------------------
-//uint16_t speedmeter_impuls_100metr = 160;        // Параметр датчика скорости - кол-во импульсов на 100 метров
-//float max_freq_speedmeter_pulse = 0.0f;               // максимальная частота генератора (или с датчика speed) для скорости 35 км\ч
-//float freq_speedmeter_pulse = 0.0f;                // частота генератора (speed)
-//uint32_t duration_pulse_speedmeter_mks = 0;        // длительность импульса с датчика скорости (генератора) в мкс
-//uint32_t old_duration_pulse_speedmeter_mks = 0;    // прежняя длительность импульса с датчика скорости (генератора) в мкс
-float speed_from_pulse = 0.0f;                     // вычисленная скорость из длительности импульса//uint8_t freq_measure_speedmeter = 5;             // Частота измерений speed (в секунду = Гц)
-//---------------------------------------------------------------------------------------------------------------
-
-struct DWIN_VAR DWIN_VAR_flowmeter = {dwin_adress_flowmeter,0};
-struct DWIN_VAR DWIN_VAR_speedmeter = {dwin_adress_speedmeter,0};
-
 
 //---НЕ трогать !!! Флаги прерываний !---------------------------------------------------------------------------
 bool flag_flowmeter_tim3_IT = false;          // флаг сработки таймера 3 по прерыванию (счет EXT imp flowmeter)
 bool flag_dwin_tx_IT = false;                 // флаг получения данных от DWIN в буфер UART
-bool flag_speedmeter_tim2_IT = false;         // флаг сработки таймера 2 по прерыванию (счет EXT имп speedmeter)
+bool flag_tim2_IT = false;            // флаг сработки таймера 2 по прерыванию (счет EXT имп speedmeter)
+bool flag_tim2_IT_NON_inpuls = false; // флаг сработки таймера 2 по прерыванию (переполнение счетчика)
+                                                 // для отслеживания пропадания входных импульсов
 //---------------------------------------------------------------------------------------------------------------
-
-//struct DWIN_STR DWIN_VAR;
-extern struct readDataDWIN_P readDataDWIN;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -151,7 +125,6 @@ int main(void)
   MX_TIM4_Init();
   MX_USART1_UART_Init();
   MX_TIM2_Init();
-
   /* USER CODE BEGIN 2 */
 #ifdef PRINT_TO_LCD_ON
 	LCD_Start();
@@ -159,27 +132,7 @@ int main(void)
 
 	DWIN_Start_page();
 	INIT_AD9833 ();
-
-// ---------------------------------------------------------------------------------------
-
-//#ifdef EXTERN_SPEEDMETER_ON
-//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1);
-//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
-//#endif  /*EXTERN_SPEEDMETER_ON*/
-
-
-#ifdef DWIN_Tx_ON
-	//HAL_Delay(50); // нижеописанное вылечено прошивкой DWIN
-	/* Необходима задержка инициализации чтоб не словить ответ от DWIN после его обнуления (посылка 4b4f - рукопожатие)
-	 * функцией DWIN_Start(). После записи переменной в DWIN приходит ответ об успешной передаче данных в DWIN
-	 * (рукопожатие). Без этой задержки данные будут приниматься с нарушениями.
-	 */
 	dwinUartDmaInit();
-#endif /*DWIN_Tx_ON*/
-
-//------------- максимальная частота датчика скорости или генератора (имитатора д.скорости)
-//	max_freq_speedmeter_pulse = 35 / (3.6 * speedmeter_impuls_100meter / 100 );
-// !!!!!!!! - очень малая дискретность изменения частоты !
 
   /* USER CODE END 2 */
 
@@ -190,76 +143,6 @@ int main(void)
 //=========================================================================================================================================
 
 		DWIN_Select_mode();
-
-//#ifdef DWIN_Tx_ON
-//		if (flag_dwin_tx_IT) {
-//			flag_dwin_tx_IT = false;
-//			parsingDWIN();
-//			uint16_t adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
-//					| readDataDWIN.parsingDataDWIN.data[1];
-//			uint16_t data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
-//					| readDataDWIN.parsingDataDWIN.data[4];
-//			switch (adress_parsing) {
-//			case (dwin_adress_flowmeter):
-//		          DWIN_VAR_flowmeter.data = data_parsing;
-//#ifdef AD9833_ON
-//  #ifdef Modul_1_ON
-//				AD9833_SetWaveData(DWIN_VAR_flowmeter.data * flowmeter_impuls_litr / 60, 1);
-//				// установка измеренной частоты (кол-во ипмульсов за секунду)
-//  #endif /*Modul_1_ON*/
-////  #ifdef Modul_2_ON  // Только для проверки Modul_2 - SPEED !
-////				AD9833_SetWaveData_2(dwin_data_flowmeter * flowmeter_impuls_litr / 60, 1);
-////				// установка измеренной частоты (кол-во ипмульсов за секунду)
-////  #endif /*Modul_2_ON*/
-//#endif /*AD9833_ON*/
-//				break;
-//			case (dwin_adress_speedmeter):
-//				DWIN_VAR_speedmeter.data = data_parsing;
-//				break;
-//			default:
-//				break;
-//			}
-//    #ifdef PRINT_TO_LCD_ON
-//			char str[45] = { 0, };
-//			sprintf(str, "Flowmeter=%u, Speedmeter=%u \n", DWIN_VAR_flowmeter.data,
-//					DWIN_VAR_speedmeter.data);
-//			printedtxt(str);
-//    #endif /*PRINT_TO_LCD_ON*/
-//
-//		}
-//#endif /*TX_DWIN_ON*/
-
-#ifdef EXTERN_SPEEDMETER_ON
-		/*
-		 * Проверка срабатывания прерывания по таймеру 2 и изменению переменной длительности импульса(?!) см ниже в задаче
-		 * (чтоб лишний раз не писать в регистры AD9833 если частота не изменяется)
-		 */
-		if ((flag_speedmeter_tim2_IT) && ( abs (!!!!!old_duration_pulse_speedmeter_mks - duration_pulse_speedmeter_mks) > 100))
-		{
-			flag_speedmeter_tim2_IT = false;
-			old_duration_pulse_speedmeter_mks = duration_pulse_speedmeter_mks;
-			freq_speedmeter_pulse = 1000000.0f / duration_pulse_speedmeter_mks; // вычисляем частоту
-			speed_from_pulse = (freq_speedmeter_pulse * (speedmeter_impuls_100meter/100)*3.6);
-			writeHalfWordDWIN(dwin_adress_speedmeter, (uint16_t)
-					(speed_from_pulse * 10)); // коэф 10 нужен для DWIN
-
-// Скорость в км/ч = Частота импульсов с датчика * (Кол-во ипм на 100м / 100) * 3.6; (3.6 коэф перевода м/с в км/час)
-// TODO Рассмотреть второе условие чтоб было по изменению скорости а не длительности импульсов!
-    #ifdef Modul_2_ON  // Modul_2 - для SPEED !
-			AD9833_SetWaveData_2(freq_speedmeter_pulse, 0); // установка измеренной частоты импульсов с датчика скорости
-    #endif /*Modul_2_ON*/
-
-			// отправка данных на LCD
-//#ifdef PRINT_TO_LCD_ON
-//			char str[50] = { 0, };
-//			sprintf(str, "FREQ: %u Hz -- Flowmeter: %u l/min \n",
-//					input_pulse_freq * freq_measure_flowmeter,
-//					(count_flowmeter_pulse * freq_measure_flowmeter * 60) / (flowmeter_impuls_litr));
-//			printedtxt(str);
-//			HAL_GPIO_TogglePin(Out_PA7_GPIO_Port, Out_PA7_Pin);
-//#endif /*PRINT_TO_LCD_ON*/
-		}
-#endif /*EXTERN_SPEEDMETER_ON*/
 
     /* USER CODE END WHILE */
 
@@ -317,7 +200,7 @@ void SystemClock_Config(void)
 
 //		 memset (strX, 0, sizeof (strX)); // образец
 
-//---------------------------- FLOWMETER ---------------------------------------------------------
+//-------------------------  EXTERN FLOWMETER  ------------------------------------------------------
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim == &htim3) // частота 5 Гц (0,2 сек) = задается для расчетов - freq_measure_flowmeter
 			{
@@ -330,24 +213,28 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		__HAL_TIM_SET_COUNTER(&htim4, 0x0000);
 		HAL_TIM_Base_Start_IT(&htim3);
 	}
+	if (htim == &htim2) {
+		flag_tim2_IT_NON_inpuls = true;
+	}
 }
-// ------------------------------------------------------------------------------------------------
 
+// ------------------------------------- UART -------------------------------------------------------
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart == &huart1) {
 		flag_dwin_tx_IT = true;
 	}
 }
+
 //------------------------------  EXTERN SPEEDMETER -------------------------------------------------
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim){
         if(htim->Instance == TIM2) {
-                if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)      // RISING с LOW на HIGH
-                        __HAL_TIM_SET_COUNTER(&htim2, 0x0000);     // обнуление счётчика
-                else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) // RISING с LOW на HIGH
-                {
-                 duration_input_pulse_mks = HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2); // чтение значения в регистре захвата/сравнения
-                 flag_speedmeter_tim2_IT = true;
-                }
+           if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)      // RISING с LOW на HIGH
+           __HAL_TIM_SET_COUNTER(&htim2, 0x0000);     // обнуление счётчика
+           else if(htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) // RISING с LOW на HIGH
+             {
+              duration_input_pulse_mks = (HAL_TIM_ReadCapturedValue(&htim2, TIM_CHANNEL_2) + 1); // чтение значения в регистре захвата/сравнения
+              flag_tim2_IT = true;
+             }
         }
 }
 /* USER CODE END 4 */
