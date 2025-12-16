@@ -602,5 +602,63 @@ void func_6 (){ // Counter flowmeter
 	 *  __HAL_TIM_GET_AUTORELOAD(&htim1)    // получить заначение Counter Period
 	 *
 	 */
+//	HAL_TIM_Base_Start_IT(&htim2);
+//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1); // запуск 2-х каналов таймера в режиме сравнения
+//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
 
-}
+	bool flag_func_6 = false;              // для выхода из функции - нажата кнопка выбора режима работы
+	bool flag_button_start = false;  // статус кнопки старт
+	bool flag_button_stop = false;   // статус кнопки стоп
+	bool flag_fix = false;           // статус фиксации кнопки Старт-Стоп для однократного пуска условия if()
+	bool flag_button_reset = false;  // статус кнопка сброса
+
+	uint16_t adress_parsing = 0;
+	uint16_t data_parsing = 0;
+
+	uint16_t setting_ratio_flowmeter = setting_ratio_flowmeter_default;  // коэф. имп/литр
+
+// ----------------------- начальные установки для отображения на dwin- приборе -------------------------
+				writeHalfWordDWIN(dwin_adress_show_counter_flowmeter, 0.000f); // вылито - 0
+				HAL_Delay(10);
+				writeHalfWordDWIN(dwin_adress_flowmeter_setting, setting_ratio_flowmeter); // 600 имп/литр
+				HAL_Delay(10);
+// ------------------------------------------------------------------------------------------------------
+	while (!flag_func_6) {
+	    if (flag_dwin_tx_IT) {  // сработало прерывание - UART буфер заполнен
+			flag_dwin_tx_IT = false;
+			parsingDWIN();
+			adress_parsing = readDataDWIN.parsingDataDWIN.data[0] << 8
+							| readDataDWIN.parsingDataDWIN.data[1];
+			data_parsing = readDataDWIN.parsingDataDWIN.data[3] << 8
+							| readDataDWIN.parsingDataDWIN.data[4];
+			 switch (adress_parsing) {
+				case (dwin_adress_flowmeter_setting): // если нажали на выбор коэфф. литр/мин - установка
+					setting_ratio_flowmeter = data_parsing;
+				   break;
+			    case (dwin_adress_button_flowmeter_start):  // нажали Старт
+			  // .................................................
+	               break;
+			    case (dwin_adress_button_flowmeter_reset):  // нажали Сброс
+			   			  // .................................................
+			   	   break;
+				case (dwin_adress_button_change_menu): // если нажата выбор режима - true и выходим из функции
+					if (data_parsing == dwin_data_app_change_menu) {
+					 // Выключаем таймеры и сбрасываем счетчики (?)
+//					   HAL_TIM_Base_Stop_IT(&htim3);
+//					   HAL_TIM_Base_Stop(&htim4);
+//					   __HAL_TIM_SET_COUNTER(&htim3, 0x0000);  // нужно ли это делать ?
+//					   __HAL_TIM_SET_COUNTER(&htim4, 0x0000);  // нужно ли это делать ?
+
+					   writeWordDWIN(dwin_adress_button_flowmeter_start, 0);  // сброс кнопки в положение Старт
+					   writeWordDWIN(dwin_adress_button_flowmeter_reset, 0);  // сброс кнопки в положение Старт
+					   writeWordDWIN(dwin_adress_show_counter_flowmeter, 0);  // сброс вылито на 0
+					   goToPageDWIN(page_start);
+				       flag_func_6 = true;
+				     }
+						             break;
+						          default:
+						             break;
+						     } /*switch*/
+					    } /*if*/
+
+} /*end func_6*/

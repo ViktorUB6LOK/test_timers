@@ -17,6 +17,7 @@
 #define dwin_adress_flowmeter  0x1000
 #define dwin_adress_flowmeter_setting  0x1010
 #define dwin_adress_button_flowmeter_start 0x1020
+#define dwin_adress_button_flowmeter_reset 0x1025
 #define setting_ratio_flowmeter_default  600        // имп/литр начальные (стартовая страница)
 #define data_flowmeter_default  0                  // начальные данные (стартовая страница)
 #define data_flowmeter_max 200                     // максимальное значение расходомера
@@ -41,7 +42,9 @@
 #define freq_measure_input_pulse 5     // частота измерения входного сигнала 1 (flow) - настройка таймера 3 - 0,2сек
 #define dwin_adress_show_freq_input_1 0x6000 // адрес переменной для вывода частоты входного сигнала flow
 #define dwin_adress_show_freq_input_2 0x6005 // адрес переменной для вывода частоты входного сигнала speed
-#define dwin_adress_show_status_input 0x5005 // адрес сообщения о статусе входного сигнала
+#define dwin_adress_show_counter_flowmeter 0x6010 // адрес переменной для вывода расчитанного кол-ва вылитой жидкости
+#define dwin_adress_show_status_input 0x5005      // адрес сообщения о статусе входного сигнала
+
 
 
 /* setting_ratio_flowmeter - параметр расходомера - кол-во имп/литр (задается пользователем)
