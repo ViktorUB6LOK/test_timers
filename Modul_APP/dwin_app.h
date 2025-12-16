@@ -29,5 +29,6 @@ void func_2 (void);            // speedmeter
 void func_3 (void);            // flowmeter_speedmeter
 void func_4 (void);            // IO flowmeter
 void func_5 (void);            // IO speedmeter
+void func_6 (void);            // Counter flowmeter
 
 #endif /* DWIN_APP_H_ */
