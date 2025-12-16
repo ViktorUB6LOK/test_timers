@@ -602,11 +602,10 @@ void func_6 (){ // Counter flowmeter
 	 *  __HAL_TIM_GET_AUTORELOAD(&htim1)    // получить заначение Counter Period
 	 *
 	 */
-//	HAL_TIM_Base_Start_IT(&htim2);
-//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_1); // запуск 2-х каналов таймера в режиме сравнения
-//	HAL_TIM_IC_Start_IT(&htim2, TIM_CHANNEL_2);
 
-	bool flag_func_6 = false;              // для выхода из функции - нажата кнопка выбора режима работы
+// запускаем 2  таймера
+
+	bool flag_func_6 = false;        // для выхода из функции - нажата кнопка выбора режима работы
 	bool flag_button_start = false;  // статус кнопки старт
 	bool flag_button_stop = false;   // статус кнопки стоп
 	bool flag_fix = false;           // статус фиксации кнопки Старт-Стоп для однократного пуска условия if()
@@ -655,10 +654,10 @@ void func_6 (){ // Counter flowmeter
 					   goToPageDWIN(page_start);
 				       flag_func_6 = true;
 				     }
-						             break;
-						          default:
-						             break;
-						     } /*switch*/
-					    } /*if*/
+				  break;
+				default:
+				  break;
+		} /*switch*/
+	} /*if*/
 
 } /*end func_6*/
