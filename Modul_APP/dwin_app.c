@@ -63,6 +63,7 @@ void DWIN_Select_mode() {
 		case (dwin_data_app_IO_speedmeter): // режим 5 (IO speedmeter)
 			goToPageDWIN(page_IO_speedmeter); // переключение на страницу режима 5
 			func_5();
+			break;
 		case (dwin_data_app_Counter_flowmeter): // режим 6 (counter flowmeter)
 			goToPageDWIN(page_Counter_flowmeter); // переключение на страницу режима 6
 			func_6();
@@ -659,5 +660,5 @@ void func_6 (){ // Counter flowmeter
 				  break;
 		} /*switch*/
 	} /*if*/
-
+	} /*while*/
 } /*end func_6*/
